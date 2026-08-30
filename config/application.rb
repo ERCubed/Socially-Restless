@@ -1,6 +1,19 @@
 require_relative "boot"
 
-require "rails/all"
+require "rails"
+
+# Pick the frameworks you want, instead of require "rails/all". This app has
+# no use for Action Mailer (and Action Mailbox/Action Text, which depend on
+# it), Active Storage, Action Cable, or Minitest (we test with RSpec), so
+# they're left out entirely rather than just left unconfigured.
+%w[
+  active_record/railtie
+  action_controller/railtie
+  action_view/railtie
+  active_job/railtie
+].each do |railtie|
+  require railtie
+end
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
