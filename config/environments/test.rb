@@ -23,13 +23,23 @@ Rails.application.configure do
   # Show full error reports and disable caching.
   config.consider_all_requests_local = true
   config.action_controller.perform_caching = false
-  config.cache_store = :null_store
+
+  # A real (not null) store, backed by its own DB index separate from
+  # development's - same reasoning as Postgres having distinct dev/test
+  # databases. Specs that exercise caching behavior need something real to
+  # assert against, not a store that discards every write.
+  config.cache_store = :redis_cache_store, { url: ENV.fetch("REDIS_URL", "redis://localhost:6379/1") }
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 
   # Disable request forgery protection in test environment.
   config.action_controller.allow_forgery_protection = false
+
+  # Off by default so an ordinary request-spec run doesn't trip its own
+  # throttles and fail unrelated tests. The rate limiting spec explicitly
+  # re-enables it (and resets counters) around the examples that need it.
+  Rack::Attack.enabled = false
 
   # Print deprecation notices to the stderr.
   config.active_support.deprecation = :stderr
