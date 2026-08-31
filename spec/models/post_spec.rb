@@ -106,4 +106,47 @@ RSpec.describe Post, type: :model do
       }.to raise_error(ActiveRecord::StatementInvalid, /value too long/)
     end
   end
+
+  describe "#recalculate_rating_stats!" do
+    it "is zero with no ratings" do
+      post.save!
+
+      post.recalculate_rating_stats!
+
+      expect(post.ratings_count).to eq(0)
+      expect(post.average_rating).to eq(0)
+    end
+
+    it "computes the count and average from the post's ratings" do
+      post.save!
+      create(:rating, post: post, score: 2)
+      create(:rating, post: post, score: 5)
+
+      post.recalculate_rating_stats!
+
+      expect(post.ratings_count).to eq(2)
+      expect(post.average_rating).to eq(3.5)
+    end
+
+    it "rounds the average to 2 decimal places" do
+      post.save!
+      create(:rating, post: post, score: 1)
+      create(:rating, post: post, score: 1)
+      create(:rating, post: post, score: 5)
+
+      post.recalculate_rating_stats!
+
+      expect(post.average_rating).to eq(2.33)
+    end
+
+    it "persists the change and doesn't just mutate in memory" do
+      post.save!
+      create(:rating, post: post, score: 4)
+
+      post.recalculate_rating_stats!
+
+      expect(post.reload.ratings_count).to eq(1)
+      expect(post.reload.average_rating).to eq(4)
+    end
+  end
 end
