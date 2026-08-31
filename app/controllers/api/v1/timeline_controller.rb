@@ -34,19 +34,52 @@ module Api
       # exist as a real access pattern yet; worth revisiting (a composite
       # index, or a precomputed "highly-rated" view) if it turns out to be
       # a heavily-used one.
+      # Caching strategy: only the first page (no cursor) is cached. That's
+      # deliberate, not partial - the overwhelming majority of Timeline
+      # traffic is "show me the latest posts" (no cursor), so caching just
+      # that turns the hottest, most-repeated query into a cache hit with a
+      # small, bounded keyspace (one entry per distinct per_page/min_rating
+      # combination actually in use). Caching every cursor value too would
+      # explode that keyspace with mostly single-use entries - poor hit
+      # rate for little benefit, since a cursor page is inherently more
+      # varied and less repeated than "page one."
+      #
+      # A flat 30s expiry (not active invalidation on post/rating writes)
+      # is the "basic" half of this: the timeline can be up to 30s stale,
+      # which is an ordinary, accepted tradeoff for a social feed - nobody
+      # expects a new post or rating to be reflected within milliseconds -
+      # and it avoids coupling Post/Rating write paths to Timeline's cache
+      # keys. Actively busting the cache on every write would keep it
+      # perfectly fresh but adds real complexity for a benefit most feeds
+      # don't need; worth revisiting if 30s turns out to be too stale for
+      # real usage.
+      CACHE_EXPIRY = 30.seconds
+
       def index
+        if params[:cursor].present?
+          render json: timeline_payload, status: :ok
+        else
+          render json: Rails.cache.fetch(timeline_cache_key, expires_in: CACHE_EXPIRY) { timeline_payload }, status: :ok
+        end
+      end
+
+      private
+
+      def timeline_payload
         scope = Post.kept.includes(:user)
         scope = scope.where("average_rating >= ?", min_rating) if min_rating
 
         posts, meta = paginate_by_cursor(scope)
 
-        render json: {
+        {
           posts: posts.map { |post| PostSerializer.new(post, include_author: true).as_json },
           meta: meta
-        }, status: :ok
+        }
       end
 
-      private
+      def timeline_cache_key
+        [ "timeline", "v1", per_page, min_rating ].join("/")
+      end
 
       # Blank/missing/non-numeric all mean "no filter", same graceful
       # handling as page/per_page elsewhere - a garbage value degrades to
