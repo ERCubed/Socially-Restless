@@ -10,6 +10,38 @@ abort("The Rails environment is running in production mode!") if Rails.env.produ
 require 'rspec/rails'
 # Add additional requires below this line. Rails is not loaded until this point!
 
+# Generates doc/openapi.yaml from these same request specs - inert unless
+# OPENAPI=1 is set (checked inside the gem itself), so this has no effect
+# on an ordinary `bundle exec rspec` run. Regenerate with:
+#   OPENAPI=1 bundle exec rspec
+# CI enforces that the committed file matches what a full run produces
+# (see .github/workflows/ci.yml), so an endpoint added without
+# regenerating docs fails the build instead of silently drifting.
+require 'rspec/openapi'
+
+RSpec::OpenAPI.title = 'Socially Restless API'
+RSpec::OpenAPI.info = {
+  description: 'A RESTful API for a social media application: user accounts, posts, ratings, and an activity timeline.'
+}
+RSpec::OpenAPI.servers = [ { url: 'http://localhost:3000', description: 'Local development' } ]
+
+# Every authenticated endpoint reads a bearer token via the Authorization
+# header (see Api::V1::BaseController#bearer_token) - not a cookie/session,
+# so it has to be opted into explicitly to show up as a documented
+# parameter rather than being silently dropped.
+RSpec::OpenAPI.request_headers = %w[Authorization]
+RSpec::OpenAPI.security_schemes = {
+  'BearerAuth' => {
+    type: 'http',
+    scheme: 'bearer',
+    description: 'Token returned by POST /api/v1/users or POST /api/v1/session'
+  }
+}
+
+# The doc-viewer routes serve this very file (HTML/YAML, not JSON), and
+# documenting "GET /api-docs returns text/html" would be noise, not signal.
+RSpec::OpenAPI.ignored_paths = [ %r{\A/api-docs} ]
+
 # Requires supporting ruby files with custom matchers and macros, etc, in
 # spec/support/ and its subdirectories. Files matching `spec/**/*_spec.rb` are
 # run as spec files by default. This means that files in spec/support that end

@@ -5,6 +5,9 @@ Rails.application.routes.draw do
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
 
+  get "api-docs", to: "docs#show"
+  get "api-docs/openapi.yaml", to: "docs#openapi"
+
   namespace :api do
     namespace :v1 do
       resources :users, only: [ :create ], param: :username do

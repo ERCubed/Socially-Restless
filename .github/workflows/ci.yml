@@ -77,4 +77,14 @@ jobs:
           # config/initializers/rack_attack.rb both already fall back to
           # localhost:6379 (on distinct DB indices) when it's absent, which
           # is exactly what this service exposes.
+          #
+          # OPENAPI=1 regenerates doc/openapi.yaml from this same run (see
+          # spec/rails_helper.rb) - the next step fails the build if that
+          # doesn't structurally match what's committed, so an endpoint
+          # added without regenerating docs can't merge silently out of
+          # date.
+          OPENAPI: "1"
         run: bin/rails db:test:prepare && bundle exec rspec
+
+      - name: Verify committed OpenAPI docs are up to date
+        run: bin/rails openapi:verify
