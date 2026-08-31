@@ -34,12 +34,20 @@ module SociallyRestless
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
     #
-    # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Only loads a smaller set of middleware suitable for API only apps.
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
+
+    # We always store and reason about timestamps in UTC (these already
+    # match Rails' own defaults; set explicitly so that doesn't silently
+    # change). Clients may send timestamps in any offset they like -
+    # `time_zone_aware_attributes` parses those via `Time.zone.parse` and
+    # normalizes to UTC before the value ever reaches ActiveRecord.
+    config.time_zone = "UTC"
+    config.active_record.default_timezone = :utc
+    config.active_record.time_zone_aware_attributes = true
   end
 end

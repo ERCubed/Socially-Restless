@@ -12,7 +12,11 @@ class ApplicationController < ActionController::API
   end
 
   def render_not_found(exception)
-    render_error(message: exception.message, status: :not_found)
+    # Deliberately not exception.message: ActiveRecord's default message
+    # embeds the failed SQL WHERE clause (column names, scoping, etc.),
+    # which is internal detail we don't want to leak to API clients.
+    model = exception.model || "Resource"
+    render_error(message: "#{model} not found", status: :not_found)
   end
 
   def render_unprocessable_entity(exception)
