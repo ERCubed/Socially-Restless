@@ -216,18 +216,24 @@ on `sessions.token_digest` for the auth lookup that runs on every authenticated 
 
 **Query design was verified against a real 1M+ row table, not assumed.** The Timeline's
 cursor pagination was benchmarked with `EXPLAIN ANALYZE` against a seeded 1.2M-row `posts`
-table before being trusted. That surfaced a real, non-obvious finding: Postgres sometimes
-chooses a full sequential scan over the covering index for a *shallow* cursor page (e.g.
-"page 2" of a feed, where nearly the whole table still matches "older than this") — a
-known Postgres cost-estimation limitation for this query shape, not a missing index. Three
-different query rewrites were tried and none changed the plan. The mitigating fact, also
-verified: that cost is bounded by table size and only affects the first few pages —
-exactly the case the Timeline's caching (below) already eliminates — unlike `OFFSET`
-pagination, whose cost is unbounded and grows with depth. This reasoning (and the decision
-*not* to add a dedicated index for the `min_rating` filter after measuring it — an index
-made the selective case *slower* in one real test, due to cache-state effects, and
-couldn't help the required sort regardless) is documented inline in
-`app/controllers/concerns/paginatable.rb` and `app/controllers/api/v1/timeline_controller.rb`.
+table before being trusted. That surfaced a real, non-obvious finding: Postgres's choice
+of plan tracks *selectivity*, not literally page depth — under ~2% of the table
+remaining after the cursor hits a Bitmap Index Scan in single-digit ms, while a shallower
+cursor (most of the table still matching) falls back to a Seq Scan, at up to ~150ms for
+the unfiltered first page. Forcing the index on at that selectivity made the query
+*slower*, not faster, confirming this is the planner making a correct cost trade-off, not
+a limitation being routed around. The mitigating fact, also verified: that cost is bounded
+by table size and only affects the first few pages — exactly the case the Timeline's
+caching (below) already eliminates — unlike `OFFSET` pagination, whose cost is unbounded
+and grows with depth. This reasoning (and the decision *not* to add a dedicated index for
+the `min_rating` filter after measuring it — a Seq Scan is chosen regardless of
+selectivity since there's no index to consider, and the base query is already scan-bound
+at this table size either way) is documented inline in
+`app/controllers/concerns/paginatable.rb` and `app/controllers/api/v1/timeline_controller.rb`,
+with full re-captured `EXPLAIN ANALYZE` output in
+[`doc/query_analysis.md`](doc/query_analysis.md). The database sharding strategy — the
+other "explain the approach even if not implemented" optional item — is written up in
+[`doc/sharding_strategy.md`](doc/sharding_strategy.md).
 
 **Timeline caching**: only the first page (no `cursor`) is cached, for 30 seconds, keyed
 on `per_page`/`min_rating`. That's deliberate, not partial — the overwhelming majority of
@@ -249,6 +255,9 @@ tighter limits on login and signup specifically (5 req per 20s/60s per IP) — t
 brute-force/credential-stuffing/spam-signup targets.
 
 ## Optional requirements
+
+Of the six optional categories (choose any 3), three were chosen: Observability & Error
+Handling, Extreme Concurrency Handling, and Advanced Database Optimization.
 
 **Observability & Error Handling — fully completed**, both requirements:
 
@@ -284,6 +293,7 @@ skipped in favor of a better-suited alternative:
   overwriting someone else's change. Verified with a live two-"client" scenario: the
   first save advances the version and succeeds, the second save from the same starting
   version correctly gets rejected, and the DB ends up holding the first client's edit.
+
 - **Database connection pooling for high-concurrency scenarios.** Done. Fixed a real
   drift between `config/puma.rb`'s thread-count default and `config/database.yml`'s pool
   size default (3 vs 5 — harmless since pool exceeded threads, but not intentional
@@ -292,6 +302,7 @@ skipped in favor of a better-suited alternative:
   `max_connections` math for if clustering is ever turned on, and added a graceful `503`
   for `ActiveRecord::ConnectionTimeoutError` (pool exhaustion) through the same error
   envelope as everything else, instead of a raw `500`.
+
 - **Redis-based distributed locks for rating operations — deliberately not built.**
   Rating writes are already made concurrency-safe (see
   [Architectural decisions](#architectural-decisions-and-trade-offs) above) via Postgres
@@ -303,6 +314,7 @@ skipped in favor of a better-suited alternative:
   stores or services and a single database can't arbitrate by itself — neither is true
   here. Adding one anyway would demonstrate the technique without improving on what's
   already correct, so this was skipped in favor of documenting the reasoning instead.
+  
 - **Sidekiq queueing for async tasks.** Done. Three background jobs, all backed by their
   own dedicated Redis DB index, separate from `Rails.cache`/`Rack::Attack`:
   - `RatingNotificationJob` — enqueued via an `after_commit` callback on `Rating` (not
@@ -335,6 +347,62 @@ skipped in favor of a better-suited alternative:
   and a post created after a warm tick was confirmed absent from the Timeline response
   until the next tick refreshed it — confirming the endpoint was actually serving the
   job-warmed cache, not a live query.
+
+**Advanced Database Optimization — completed**, all five requirements — three built,
+two written up:
+
+- **Database query analysis with EXPLAIN output for critical queries.** Done, with real
+  `EXPLAIN ANALYZE` output (not paraphrased) captured against a seeded 1.2M-row table,
+  written up in [`doc/query_analysis.md`](doc/query_analysis.md). This is also where a
+  claim from the Performance considerations section above got corrected by the evidence:
+  the Timeline's shallow-cursor Seq Scan turned out to be the planner making a *correct*
+  cost trade-off, not a limitation being routed around — forcing the index on measured
+  slower, not faster, at that selectivity.
+  
+- **Database sharding strategy, explained.** Done as a design write-up, not an
+  implementation (the requirement's own wording) — see
+  [`doc/sharding_strategy.md`](doc/sharding_strategy.md). The interesting part isn't the
+  generic "shard by user_id" answer; it's that a `Rating` has two user relationships
+  (the rater and, via its post, the post's author), so sharding by user puts a rating on
+  a different physical database than the post/lock it needs to update transactionally —
+  directly breaking `Rating.rate!`'s `post.lock!`-based correctness guarantee, verified
+  elsewhere in this README with two genuinely separate OS processes. The Timeline (a
+  global, cross-shard feed with no natural shard key) makes it worse, and points toward
+  the same fan-out-on-write pattern the Sidekiq jobs above already use.
+- **Full-text search on posts.** Done and live: `GET /api/v1/posts/search?q=...`, backed
+  by a generated (`STORED`) `tsvector` column (`title` weighted above `body`) and a GIN
+  index — Postgres keeps the column in sync on every write, so there's no app-level
+  callback that could drift from the actual title/body. `websearch_to_tsquery` handles
+  raw, unsanitized user input (quoted phrases, `-exclude`) without raising on stray
+  punctuation. Offset-paginated, not cursor-paginated, like the per-user posts endpoint —
+  a search result set is bounded by how much actually matches, not "every post ever
+  made."
+
+- **JSONB post metadata with efficient querying.** Done: a `metadata` jsonb column
+  (default `{}`, GIN-indexed) accepted on post create/update as a free-form object
+  (`to_unsafe_h` — the accepted pattern for an intentionally schemaless column, not a
+  mass-assignment risk since it's one opaque JSON document, never used to set arbitrary
+  AR attributes) and returned in every post response. `Post.with_metadata` queries it via
+  the `@>` containment operator. "Efficient" is measured, not asserted: real `EXPLAIN
+  ANALYZE` at 1.2M rows (`doc/query_analysis.md`, Finding 4) shows the GIN index chosen
+  correctly at two selectivities, most dramatically for a single-row lookup by a unique
+  key — 0.063ms with the index vs. 96.5ms forced to a sequential scan, ~1,500x.
+
+- **Materialized view for the timeline.** Built for real — a `timeline_feed`
+  materialized view (`TimelineFeedEntry`, read-only, refused writes verified in specs),
+  kept current by a self-perpetuating `RefreshTimelineFeedViewJob` on the same heartbeat
+  pattern as the jobs above — but **deliberately not wired into `TimelineController`'s
+  live request path**. Benchmarked anyway (`doc/query_analysis.md`, Finding 5): 157ms
+  (base table) vs. 0.061ms (view), ~2,500x, and the honest reason why connects back to
+  the first finding in that document rather than being a new phenomenon — the view has
+  no `deleted_at` condition left for the planner to distrust, so an indexed
+  `ORDER BY ... LIMIT` becomes a pure backward index walk. That's a real result, but the
+  157ms it improves on is a request Rails.cache already serves in ~0ms on every hit —
+  wiring this in would solve a problem the existing cache already solved, not a new one.
+  (Building this also surfaced a genuine infrastructure requirement: `schema.rb` can't
+  represent a materialized view at all, so this repo now dumps `db/structure.sql` via
+  `pg_dump` instead — see `config.active_record.schema_format` in
+  `config/application.rb`.)
 
 ## Testing
 

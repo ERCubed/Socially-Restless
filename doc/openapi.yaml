@@ -16,8 +16,7 @@ paths:
       - Api::V1::Post
       responses:
         '201':
-          description: ignores a client-supplied user_id and always attributes the
-            post to the current user
+          description: defaults metadata to an empty object when not given
           content:
             application/json:
               schema:
@@ -47,6 +46,13 @@ paths:
                         type: string
                       lock_version:
                         type: integer
+                      metadata:
+                        type: object
+                        properties:
+                          tags:
+                            type: array
+                            items:
+                              type: string
                     required:
                     - id
                     - title
@@ -61,16 +67,20 @@ paths:
                 - post
               example:
                 post:
-                  id: 1917
-                  title: Hello
-                  body: Body
-                  user_id: 2554
+                  id: 1107
+                  title: Hello world
+                  body: This is my first post.
+                  user_id: 1401
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T19:31:13.715Z'
-                  updated_at: '2026-08-31T19:31:13.715Z'
+                  created_at: '2026-08-31T20:51:36.428Z'
+                  updated_at: '2026-08-31T20:51:36.428Z'
                   lock_version: 0
+                  metadata:
+                    tags:
+                    - ruby
+                    - rails
         '401':
           description: requires authentication
           content:
@@ -127,7 +137,7 @@ paths:
         required: true
         schema:
           type: string
-        example: Bearer bfe12bc8328473938edc8a3cf0dd2393b6010a989269fcded09e5370bbed9efd
+        example: Bearer f58f9938012f0d4d5098aa1ba91e11dff12cae896936135a5405ec393b5e171f
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -143,6 +153,15 @@ paths:
                       type: string
                     user_id:
                       type: string
+                    metadata:
+                      type: object
+                      properties:
+                        tags:
+                          type: array
+                          items:
+                            type: string
+                      required:
+                      - tags
                   required:
                   - title
                   - body
@@ -150,9 +169,248 @@ paths:
               - post
             example:
               post:
-                title: Hello
-                body: Body
-                user_id: '2553'
+                title: Hello world
+                body: This is my first post.
+                user_id: '1398'
+                metadata:
+                  tags:
+                  - ruby
+                  - rails
+  "/api/v1/posts/search":
+    get:
+      summary: search
+      tags:
+      - Api::V1::Post
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+        example: 2
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+        example: 5
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+        example: astronomy
+      responses:
+        '200':
+          description: paginates results with page/per_page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        title:
+                          type: string
+                        body:
+                          type: string
+                        user_id:
+                          type: integer
+                        view_count:
+                          type: integer
+                        average_rating:
+                          type: number
+                          format: float
+                        ratings_count:
+                          type: integer
+                        lock_version:
+                          type: integer
+                        created_at:
+                          type: string
+                        updated_at:
+                          type: string
+                        author:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            username:
+                              type: string
+                            email:
+                              type: string
+                            first_name:
+                              type: string
+                            last_name:
+                              type: string
+                            created_at:
+                              type: string
+                          required:
+                          - id
+                          - username
+                          - email
+                          - first_name
+                          - last_name
+                          - created_at
+                        metadata:
+                          type: object
+                          properties: {}
+                      required:
+                      - id
+                      - title
+                      - body
+                      - user_id
+                      - view_count
+                      - average_rating
+                      - ratings_count
+                      - lock_version
+                      - created_at
+                      - updated_at
+                      - author
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      per_page:
+                        type: integer
+                      total_count:
+                        type: integer
+                      total_pages:
+                        type: integer
+                    required:
+                    - page
+                    - per_page
+                    - total_count
+                    - total_pages
+                required:
+                - posts
+                - meta
+              example:
+                posts:
+                - id: 1089
+                  title: Astronomy post 5
+                  body: Body
+                  user_id: 1381
+                  view_count: 0
+                  average_rating: 0.0
+                  ratings_count: 0
+                  lock_version: 0
+                  metadata: {}
+                  created_at: '2026-08-31T20:51:36.270Z'
+                  updated_at: '2026-08-31T20:51:36.270Z'
+                  author:
+                    id: 1381
+                    username: user154
+                    email: user158@example.com
+                    first_name: Jeffrey
+                    last_name: Klein
+                    created_at: '2026-08-31T20:51:36.269Z'
+                - id: 1090
+                  title: Astronomy post 6
+                  body: Body
+                  user_id: 1382
+                  view_count: 0
+                  average_rating: 0.0
+                  ratings_count: 0
+                  lock_version: 0
+                  metadata: {}
+                  created_at: '2026-08-31T20:51:36.274Z'
+                  updated_at: '2026-08-31T20:51:36.274Z'
+                  author:
+                    id: 1382
+                    username: user155
+                    email: user159@example.com
+                    first_name: Wendolyn
+                    last_name: Reichert
+                    created_at: '2026-08-31T20:51:36.273Z'
+                - id: 1091
+                  title: Astronomy post 7
+                  body: Body
+                  user_id: 1383
+                  view_count: 0
+                  average_rating: 0.0
+                  ratings_count: 0
+                  lock_version: 0
+                  metadata: {}
+                  created_at: '2026-08-31T20:51:36.278Z'
+                  updated_at: '2026-08-31T20:51:36.278Z'
+                  author:
+                    id: 1383
+                    username: user156
+                    email: user160@example.com
+                    first_name: Grant
+                    last_name: Weber
+                    created_at: '2026-08-31T20:51:36.277Z'
+                - id: 1092
+                  title: Astronomy post 8
+                  body: Body
+                  user_id: 1384
+                  view_count: 0
+                  average_rating: 0.0
+                  ratings_count: 0
+                  lock_version: 0
+                  metadata: {}
+                  created_at: '2026-08-31T20:51:36.282Z'
+                  updated_at: '2026-08-31T20:51:36.282Z'
+                  author:
+                    id: 1384
+                    username: user157
+                    email: user161@example.com
+                    first_name: Trista
+                    last_name: Frami
+                    created_at: '2026-08-31T20:51:36.281Z'
+                - id: 1093
+                  title: Astronomy post 9
+                  body: Body
+                  user_id: 1385
+                  view_count: 0
+                  average_rating: 0.0
+                  ratings_count: 0
+                  lock_version: 0
+                  metadata: {}
+                  created_at: '2026-08-31T20:51:36.285Z'
+                  updated_at: '2026-08-31T20:51:36.285Z'
+                  author:
+                    id: 1385
+                    username: user158
+                    email: user162@example.com
+                    first_name: Rolanda
+                    last_name: Doyle
+                    created_at: '2026-08-31T20:51:36.285Z'
+                meta:
+                  page: 2
+                  per_page: 5
+                  total_count: 15
+                  total_pages: 3
+        '400':
+          description: requires q to be non-blank
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      details:
+                        type: array
+                        items: {}
+                    required:
+                    - message
+                    - details
+                required:
+                - error
+              example:
+                error:
+                  message: 'param is missing or the value is empty or invalid: q'
+                  details: []
   "/api/v1/posts/{id}":
     delete:
       summary: destroy
@@ -164,7 +422,7 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer 1d6929250133eb9d7ff5e58943e104cfab6d18491570b39a3c9cf0f4087b38e2
+        example: Bearer ccc1ce9b95ff7db9dd6998415eccd5cc2d02d8ebfbea3052f6eb2c8cb47cac52
       - name: id
         in: path
         required: true
@@ -232,13 +490,13 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer 3b28d0e9a25f5d1528880537cda743f3e3a43939104943fdfbe90ac45cd433b9
+        example: Bearer d51644dde075267dbb3714e2bfa981f3b23c2026e753251610f3f488ef82ddf6
       - name: id
         in: path
         required: true
         schema:
           type: integer
-        example: 1915
+        example: 1103
       responses:
         '200':
           description: does not increment view_count when the author views their own
@@ -272,6 +530,9 @@ paths:
                         type: string
                       lock_version:
                         type: integer
+                      metadata:
+                        type: object
+                        properties: {}
                     required:
                     - id
                     - title
@@ -286,16 +547,17 @@ paths:
                 - post
               example:
                 post:
-                  id: 1915
-                  title: Ipsam voluptates eaque et.
-                  body: Quia et rerum. Accusamus omnis debitis. Quas dolor ratione.
-                  user_id: 2551
+                  id: 1103
+                  title: Cumque ipsam repudiandae quis.
+                  body: Aut quibusdam aut. Sed non quis. Autem aspernatur sequi.
+                  user_id: 1396
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T19:31:13.687Z'
-                  updated_at: '2026-08-31T19:31:13.687Z'
+                  created_at: '2026-08-31T20:51:36.375Z'
+                  updated_at: '2026-08-31T20:51:36.375Z'
                   lock_version: 0
+                  metadata: {}
         '404':
           description: 404s for a nonexistent post
           content:
@@ -330,7 +592,7 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer 86c9799690efdf6f0eeeea8fd7f3e0bbbdf264eee8c190a5adc3a26659884464
+        example: Bearer 4dbda8a43f2fe05a328d458cb7fa7a80a2a2ddd705027fba773a255fbe5069a6
       - name: id
         in: path
         required: true
@@ -369,6 +631,13 @@ paths:
                         type: string
                       updated_at:
                         type: string
+                      metadata:
+                        type: object
+                        properties:
+                          tags:
+                            type: array
+                            items:
+                              type: string
                     required:
                     - id
                     - title
@@ -384,16 +653,19 @@ paths:
                 - post
               example:
                 post:
-                  id: 1922
+                  id: 1114
                   title: New
                   body: Original body
-                  user_id: 2563
+                  user_id: 1412
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
                   lock_version: 1
-                  created_at: '2026-08-31T19:31:13.783Z'
-                  updated_at: '2026-08-31T19:31:13.787Z'
+                  created_at: '2026-08-31T20:51:36.540Z'
+                  updated_at: '2026-08-31T20:51:36.545Z'
+                  metadata:
+                    tags:
+                    - ruby
         '400':
           description: requires lock_version to be present
           content:
@@ -535,6 +807,15 @@ paths:
                       type: string
                     user_id:
                       type: string
+                    metadata:
+                      type: object
+                      properties:
+                        tags:
+                          type: array
+                          items:
+                            type: string
+                      required:
+                      - tags
                   required:
                   - title
                   - lock_version
@@ -545,7 +826,10 @@ paths:
                 title: New
                 body: Updated body
                 lock_version: '0'
-                user_id: '2562'
+                user_id: '1411'
+                metadata:
+                  tags:
+                  - ruby
   "/api/v1/posts/{post_id}/rating":
     post:
       summary: create
@@ -557,13 +841,13 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer 3d670c2153886d05a164e3bc1475e04637051b2fbfefdfcd1e410abace3ea714
+        example: Bearer 3ece5b33e1577d12431a20224e91717dea4ec6a0f54ca92c49944a5fec45073d
       - name: post_id
         in: path
         required: true
         schema:
           type: integer
-        example: 1936
+        example: 1128
       responses:
         '200':
           description: updates the existing rating in place on a second call, without
@@ -599,12 +883,12 @@ paths:
                 - rating
               example:
                 rating:
-                  id: 342
-                  post_id: 1932
-                  user_id: 2588
+                  id: 165
+                  post_id: 1124
+                  user_id: 1437
                   score: 5
-                  created_at: '2026-08-31T19:31:14.200Z'
-                  updated_at: '2026-08-31T19:31:14.206Z'
+                  created_at: '2026-08-31T20:51:36.984Z'
+                  updated_at: '2026-08-31T20:51:36.995Z'
         '201':
           description: lets different users rate the same post independently
           content:
@@ -638,12 +922,12 @@ paths:
                 - rating
               example:
                 rating:
-                  id: 344
-                  post_id: 1933
-                  user_id: 2589
+                  id: 167
+                  post_id: 1125
+                  user_id: 1438
                   score: 5
-                  created_at: '2026-08-31T19:31:14.234Z'
-                  updated_at: '2026-08-31T19:31:14.234Z'
+                  created_at: '2026-08-31T20:51:37.034Z'
+                  updated_at: '2026-08-31T20:51:37.034Z'
         '401':
           description: requires authentication
           content:
@@ -751,7 +1035,7 @@ paths:
         required: true
         schema:
           type: string
-        example: Bearer f354be98ffc183f19caaf7b5fcf81f286286878d234917b4f0cde2135880395f
+        example: Bearer a6edea81864dfe00fe13ca10a1d8ccda02b376bddabb4c5fb6315582d31a08bc
     post:
       summary: create
       tags:
@@ -793,13 +1077,13 @@ paths:
                 - token
               example:
                 user:
-                  id: 2600
-                  username: user157
-                  email: user157@example.com
-                  first_name: Karolyn
-                  last_name: Cummings
-                  created_at: '2026-08-31T19:31:14.301Z'
-                token: d239ce0d96b21052989beda653c6220fc737e08c9382ce554ed770d3dba81e82
+                  id: 1449
+                  username: user217
+                  email: user221@example.com
+                  first_name: Kyle
+                  last_name: Gleichner
+                  created_at: '2026-08-31T20:51:37.105Z'
+                token: a244b724a0d19aa474a8a0266c5b73e756dc3c649114b7b4e49aa71a30bf55a7
         '401':
           description: rejects an unknown email
           content:
@@ -869,7 +1153,7 @@ paths:
               - session
             example:
               session:
-                email: USER157@EXAMPLE.COM
+                email: USER221@EXAMPLE.COM
                 password: password123
   "/api/v1/timeline":
     get:
@@ -932,6 +1216,9 @@ paths:
                           - created_at
                         lock_version:
                           type: integer
+                        metadata:
+                          type: object
+                          properties: {}
                       required:
                       - id
                       - title
@@ -963,41 +1250,43 @@ paths:
                 - meta
               example:
                 posts:
-                - id: 2012
-                  title: Odio cum similique voluptate.
-                  body: Sint reiciendis fugit. Unde omnis facere. Impedit alias officiis.
-                  user_id: 2686
+                - id: 1204
+                  title: Rerum occaecati suscipit veritatis.
+                  body: Assumenda voluptatem sed. Voluptates eius excepturi. Id laborum
+                    culpa.
+                  user_id: 1535
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
                   lock_version: 0
-                  created_at: '2026-08-31T19:31:14.934Z'
-                  updated_at: '2026-08-31T19:31:14.934Z'
+                  metadata: {}
+                  created_at: '2026-08-31T20:51:37.875Z'
+                  updated_at: '2026-08-31T20:51:37.875Z'
                   author:
-                    id: 2686
-                    username: user240
-                    email: user243@example.com
-                    first_name: Nancey
-                    last_name: Roberts
-                    created_at: '2026-08-31T19:31:14.932Z'
-                - id: 2011
-                  title: Sint tenetur blanditiis dolorem.
-                  body: Mollitia consequatur est. Quisquam reprehenderit non. Minus
-                    voluptatem ipsa.
-                  user_id: 2685
+                    id: 1535
+                    username: user300
+                    email: user307@example.com
+                    first_name: Bruno
+                    last_name: MacGyver
+                    created_at: '2026-08-31T20:51:37.873Z'
+                - id: 1203
+                  title: Est dolor libero fugit.
+                  body: Saepe possimus et. Nam illum cumque. Quaerat impedit labore.
+                  user_id: 1534
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
                   lock_version: 0
-                  created_at: '2026-08-31T19:31:14.821Z'
-                  updated_at: '2026-08-31T19:31:14.821Z'
+                  metadata: {}
+                  created_at: '2026-08-31T20:51:37.754Z'
+                  updated_at: '2026-08-31T20:51:37.754Z'
                   author:
-                    id: 2685
-                    username: user239
-                    email: user242@example.com
-                    first_name: Donn
-                    last_name: Lueilwitz
-                    created_at: '2026-08-31T19:31:14.820Z'
+                    id: 1534
+                    username: user299
+                    email: user306@example.com
+                    first_name: Antonette
+                    last_name: Ruecker
+                    created_at: '2026-08-31T20:51:37.753Z'
                 meta:
                   per_page: 10
                   has_more: false
@@ -1058,7 +1347,7 @@ paths:
         required: false
         schema:
           type: string
-        example: MjAyNi0wOC0zMVQxOTozMToxNC43NTg3MjBafDIwMDU=
+        example: MjAyNi0wOC0zMVQyMDo1MTozNy42ODIwNjdafDExOTc=
       - name: min_rating
         in: query
         required: false
@@ -1119,13 +1408,13 @@ paths:
                 - token
               example:
                 user:
-                  id: 2700
+                  id: 1549
                   username: newuser
                   email: newuser@example.com
                   first_name:
                   last_name:
-                  created_at: '2026-08-31T19:31:15.101Z'
-                token: e55f0a3c2c112cbbfd63b5db9b8817bbaac9cb4daa3998f6f84b40352a427ef9
+                  created_at: '2026-08-31T20:51:38.167Z'
+                token: f29cf25759089eb4877c0a2315bcc97a419203aae85fb144d09b7ff06597e039
         '422':
           description: rejects duplicate emails case-insensitively
           content:
@@ -1223,7 +1512,7 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer 57de1de4495d07f93531fe9e2422d7fb8fd769fd6e341e17bde22d01c8e14a02
+        example: Bearer 1450747c16514cafe8e217284cc6659d2160b134706b15ec30fc5f4ccd8ee7f5
       - name: page
         in: query
         required: false
@@ -1279,6 +1568,9 @@ paths:
                           type: string
                         lock_version:
                           type: integer
+                        metadata:
+                          type: object
+                          properties: {}
                       required:
                       - id
                       - title
@@ -1310,26 +1602,28 @@ paths:
                 - meta
               example:
                 posts:
-                - id: 2054
-                  title: Reprehenderit cumque fugiat illum.
-                  body: Velit iure eveniet. Molestiae blanditiis debitis. Aut et deserunt.
-                  user_id: 2698
+                - id: 1246
+                  title: Nostrum laudantium et dolore.
+                  body: Et quis voluptatem. Aspernatur esse et. Quia officia eveniet.
+                  user_id: 1547
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
                   lock_version: 0
-                  created_at: '2026-08-31T19:31:15.084Z'
-                  updated_at: '2026-08-31T19:31:15.084Z'
-                - id: 2053
-                  title: Voluptatem labore adipisci et.
-                  body: Nemo enim sunt. Deleniti minus et. Delectus recusandae ut.
-                  user_id: 2698
+                  metadata: {}
+                  created_at: '2026-08-31T20:51:38.133Z'
+                  updated_at: '2026-08-31T20:51:38.133Z'
+                - id: 1245
+                  title: Corrupti suscipit alias consequatur.
+                  body: Non est porro. Nam ut consequatur. Ipsam quod est.
+                  user_id: 1547
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
                   lock_version: 0
-                  created_at: '2026-08-31T19:31:15.082Z'
-                  updated_at: '2026-08-31T19:31:15.082Z'
+                  metadata: {}
+                  created_at: '2026-08-31T20:51:38.131Z'
+                  updated_at: '2026-08-31T20:51:38.131Z'
                 meta:
                   page: 1
                   per_page: 10
@@ -1413,23 +1707,23 @@ paths:
                 - subsystems
               example:
                 status: ok
-                checked_at: '2026-08-31T19:31:15Z'
+                checked_at: '2026-08-31T20:51:38Z'
                 subsystems:
                   database:
                     status: ok
                     critical: true
-                    latency_ms: 0.13
+                    latency_ms: 0.22
                   cache:
                     status: ok
                     critical: false
-                    latency_ms: 0.11
+                    latency_ms: 0.17
                     error: Redis::CannotConnectError
                   rate_limiter:
                     status: ok
                     critical: false
-                    latency_ms: 0.11
+                    latency_ms: 0.13
                     error: Redis::CannotConnectError
-                latest_commit: 23198bd454
+                latest_commit: 538b30d6e2
         '503':
           description: returns 503 and status unavailable when the database is unreachable
           content:
@@ -1497,7 +1791,7 @@ paths:
                 - subsystems
               example:
                 status: unavailable
-                checked_at: '2026-08-31T19:31:15Z'
+                checked_at: '2026-08-31T20:51:38Z'
                 subsystems:
                   database:
                     status: error
@@ -1506,12 +1800,12 @@ paths:
                   cache:
                     status: ok
                     critical: false
-                    latency_ms: 0.11
+                    latency_ms: 0.26
                   rate_limiter:
                     status: ok
                     critical: false
-                    latency_ms: 0.1
-                latest_commit: 23198bd454
+                    latency_ms: 0.14
+                latest_commit: 538b30d6e2
   "/up":
     get:
       summary: show

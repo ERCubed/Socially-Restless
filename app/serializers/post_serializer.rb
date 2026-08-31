@@ -19,6 +19,7 @@ class PostSerializer
       average_rating: post.average_rating.to_f,
       ratings_count: post.ratings_count,
       lock_version: post.lock_version,
+      metadata: post.metadata,
       created_at: post.created_at,
       updated_at: post.updated_at
     }

@@ -1,7 +1,32 @@
 module Api
   module V1
     class PostsController < BaseController
+      include Paginatable
+
       before_action :authenticate_user!, only: [ :create, :update, :destroy ]
+
+      # GET /api/v1/posts/search?q=...
+      # Public, like the other post-reading endpoints. Offset pagination
+      # (not cursor, unlike Timeline): a text search's result set is
+      # bounded by how many posts actually match the query, not "every
+      # post ever made" - the unbounded-depth problem cursor pagination
+      # exists for doesn't apply here the way it does for the Timeline.
+      #
+      # Not incrementing view_count: same reasoning as Timeline - seeing a
+      # post in a list of search results is a weaker signal than opening
+      # it, and this endpoint (like Timeline) shows results across every
+      # user, so include_author matches Timeline's serialization shape.
+      def search
+        query = params[:q].presence
+        raise ActionController::ParameterMissing, :q if query.blank?
+
+        posts, meta = paginate(Post.kept.search(query))
+
+        render json: {
+          posts: posts.map { |post| PostSerializer.new(post, include_author: true).as_json },
+          meta: meta
+        }, status: :ok
+      end
 
       # GET /api/v1/posts/:id
       def show
@@ -61,7 +86,7 @@ module Api
       # user_id is intentionally not permitted here: a post's author is
       # always the authenticated user, never a client-supplied value.
       def create_params
-        params.require(:post).permit(:title, :body)
+        permit_metadata(params.require(:post).permit(:title, :body))
       end
 
       # lock_version is permitted here, unlike create: it's not something
@@ -69,7 +94,23 @@ module Api
       # they last read (see #update above) - required, not just permitted,
       # via the explicit presence check in #update.
       def update_params
-        params.require(:post).permit(:title, :body, :lock_version)
+        permit_metadata(params.require(:post).permit(:title, :body, :lock_version))
+      end
+
+      # metadata is a free-form jsonb column (see the migration and
+      # Post.with_metadata) - its shape is deliberately not fixed, so
+      # there's no finite list of keys to `permit` the way title/body/
+      # lock_version have. `to_unsafe_h` is the accepted escape hatch for
+      # exactly this case: a client-supplied nested object that's stored
+      # as an opaque JSON document, never interpolated into SQL or used
+      # to set arbitrary model attributes (mass assignment isn't a risk
+      # here - it's a single JSON column, not a set of AR attributes).
+      # Only merged in when the client actually sends it, so an update
+      # that only touches title/body doesn't wipe out existing metadata.
+      def permit_metadata(permitted)
+        raw = params.dig(:post, :metadata)
+        permitted[:metadata] = raw.to_unsafe_h if raw.is_a?(ActionController::Parameters)
+        permitted
       end
     end
   end

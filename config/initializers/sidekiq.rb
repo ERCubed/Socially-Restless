@@ -22,5 +22,6 @@ Sidekiq.configure_server do |config|
   config.on(:startup) do
     FlushViewCountsJob.perform_later if FlushViewCountsJob.claim_heartbeat!
     WarmTimelineCacheJob.perform_later if WarmTimelineCacheJob.claim_heartbeat!
+    RefreshTimelineFeedViewJob.perform_later if RefreshTimelineFeedViewJob.claim_heartbeat!
   end
 end

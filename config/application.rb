@@ -53,5 +53,12 @@ module SociallyRestless
     # See config/initializers/sidekiq.rb for the Redis connection this
     # queues into.
     config.active_job.queue_adapter = :sidekiq
+
+    # schema.rb (the default Ruby DSL dump) has no way to express a
+    # materialized view (see the CreateTimelineFeedView migration) - only
+    # `structure.sql`, a real `pg_dump --schema-only` dump, can. Without
+    # this, `db:test:prepare`/`db:schema:load` would silently rebuild a
+    # test database missing the view entirely.
+    config.active_record.schema_format = :sql
   end
 end

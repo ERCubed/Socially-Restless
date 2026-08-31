@@ -15,6 +15,38 @@ class Post < ApplicationRecord
   scope :kept, -> { where(deleted_at: nil) }
   scope :deleted, -> { where.not(deleted_at: nil) }
 
+  # Full-text search over title+body, ranked by relevance. `search_vector`
+  # is a generated (STORED) tsvector column (see the migration) - Postgres
+  # keeps it in sync with title/body on every write, so this never risks
+  # searching against a stale value the way an app-maintained column
+  # could. `websearch_to_tsquery` (not `plainto_tsquery`/`to_tsquery`) is
+  # the one built for raw, un-sanitized user input: it tolerates stray
+  # punctuation instead of raising, and still understands quoted phrases
+  # and `-exclude`/`or` the way a search box is expected to.
+  #
+  # Ranked (not just matched) and ordered by that rank: `ts_rank` favors
+  # title matches over body matches (see the migration's setweight('A')
+  # vs ('B')), so a query matching a post's title outranks the same term
+  # merely appearing somewhere in a long body.
+  scope :search, ->(query) {
+    tsquery = sanitize_sql_array([ "websearch_to_tsquery('english', ?)", query ])
+
+    where("search_vector @@ (#{tsquery})")
+      .select("posts.*, ts_rank(search_vector, #{tsquery}) AS search_rank")
+      .order("search_rank DESC")
+  }
+
+  # Containment query (`@>`) against the `metadata` jsonb column: matches
+  # rows whose metadata is a superset of `criteria`, e.g.
+  # `Post.with_metadata("tags" => [ "ruby" ])` matches
+  # `{"tags" => ["ruby", "rails"]}` but not `{"tags" => ["rails"]}`. This
+  # is exactly the operator the GIN index on `metadata` (see the
+  # migration) accelerates - see doc/query_analysis.md for real EXPLAIN
+  # ANALYZE output confirming it's actually used, not just present.
+  scope :with_metadata, ->(criteria) {
+    where("metadata @> ?", criteria.to_json)
+  }
+
   def soft_delete!
     update!(deleted_at: Time.current)
   end
