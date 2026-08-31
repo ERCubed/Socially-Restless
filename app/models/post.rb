@@ -63,13 +63,25 @@ class Post < ApplicationRecord
   # Rating's after_save callback, which runs inside the same implicit
   # transaction Rails already wraps every save in, so a rating and its
   # post's updated stats are already committed or rolled back together.
-  # Making that transactional intent explicit - and adding row locking so
-  # two concurrent ratings on the same post can't race each other's
-  # recalculation - is the next piece of hardening, not this one.
+  #
+  # with_lock (SELECT ... FOR UPDATE) closes a lost-update race: without
+  # it, two concurrent ratings on the same post could each read the
+  # ratings table before the other's write is committed, each compute a
+  # correct-at-the-time count/average that's missing the other's rating,
+  # and whichever writes last would silently overwrite the other's result
+  # with an equally-incomplete one. Locking serializes that - the second
+  # caller's read waits for the first to fully commit, so it always sees
+  # the first's rating already reflected in its own aggregate. Rating.rate!
+  # already holds this same lock for its whole transaction before this
+  # ever runs, so this is usually a redundant (cheap, reentrant) re-lock -
+  # it's here so this method is correct on its own regardless of caller,
+  # rather than relying on every caller to remember to lock first.
   def recalculate_rating_stats!
-    count = ratings.count
-    average = count.zero? ? 0 : ratings.average(:score)
+    with_lock do
+      count = ratings.count
+      average = count.zero? ? 0 : ratings.average(:score)
 
-    update_columns(ratings_count: count, average_rating: average.to_d.round(2))
+      update_columns(ratings_count: count, average_rating: average.to_d.round(2))
+    end
   end
 end

@@ -77,6 +77,63 @@ RSpec.describe Rating, type: :model do
     end
   end
 
+  describe ".rate!" do
+    it "creates a new rating when the user hasn't rated this post before" do
+      result = nil
+
+      expect {
+        result = Rating.rate!(user: user, post: post_record, score: 4)
+      }.to change(Rating, :count).by(1)
+
+      expect(result.score).to eq(4)
+      expect(result).to be_previously_new_record
+    end
+
+    it "updates the existing rating in place on a second call, without creating a duplicate" do
+      Rating.rate!(user: user, post: post_record, score: 2)
+
+      result = nil
+      expect {
+        result = Rating.rate!(user: user, post: post_record, score: 5)
+      }.not_to change(Rating, :count)
+
+      expect(result.score).to eq(5)
+      expect(result).not_to be_previously_new_record
+    end
+
+    it "updates the post's cached stats as part of the same call" do
+      Rating.rate!(user: user, post: post_record, score: 4)
+
+      expect(post_record.reload.ratings_count).to eq(1)
+      expect(post_record.reload.average_rating).to eq(4)
+    end
+
+    it "raises and creates nothing for an invalid score" do
+      expect {
+        expect { Rating.rate!(user: user, post: post_record, score: 9) }.to raise_error(ActiveRecord::RecordInvalid)
+      }.not_to change(Rating, :count)
+    end
+
+    it "rolls back the rating write if the post's stats update fails, keeping both atomic" do
+      allow_any_instance_of(Post).to receive(:recalculate_rating_stats!).and_raise("boom")
+
+      expect {
+        expect { Rating.rate!(user: user, post: post_record, score: 4) }.to raise_error("boom")
+      }.not_to change(Rating, :count)
+    end
+
+    it "locks the post row before touching ratings, to serialize concurrent raters of the same post" do
+      queries = []
+      subscriber = ->(*, payload) { queries << payload[:sql] }
+
+      ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
+        Rating.rate!(user: user, post: post_record, score: 3)
+      end
+
+      expect(queries).to include(a_string_matching(/FOR UPDATE/i))
+    end
+  end
+
   describe "database constraints" do
     it "rejects a score outside 1..5 at the database level, even bypassing model validations" do
       rating.save!
