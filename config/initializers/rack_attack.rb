@@ -1,16 +1,32 @@
-# Rack::Attack.cache.store defaults to Rails.cache, which is :null_store in
-# both development and test by default (see config/environments) - that
-# would make every throttle below silently do nothing. Using a dedicated
-# MemoryStore decouples rate-limit counters from the app's general
-# object-cache configuration.
+# Rack::Attack.cache.store defaults to Rails.cache - deliberately not used
+# here, because Rails.cache is a :null_store in development unless a
+# developer has opted in via `bin/rails dev:cache` (see
+# config/environments/development.rb). Rate limiting is a security
+# control, not a performance nicety, so it shouldn't quietly stop working
+# just because that unrelated toggle is off. This gets its own Redis
+# connection instead, always active independent of that toggle. In local
+# dev/test it defaults to its own DB index (2 dev, 3 test), distinct from
+# Rails.cache's (0 dev, 1 test) and from each other - so a developer
+# running the app locally can't have their rate-limit counters bleed into
+# a concurrently-running test suite, or vice versa. In production both
+# typically resolve to the same REDIS_URL, which is fine since rack-attack
+# namespaces its keys under "rack::attack:".
 #
-# This only counts requests seen by *this* process: fine for a single
-# server, but each app server/worker in a multi-process/multi-server
-# deployment would keep its own counters, effectively multiplying the
-# limits by the number of processes. The fix there is a shared store -
-# point this at Redis instead, the same upgrade the optional Redis-based
-# concurrency work would bring into the stack anyway.
-Rack::Attack.cache.store = ActiveSupport::Cache::MemoryStore.new
+# Using :redis_cache_store (not a raw Redis client) also means this
+# degrades gracefully if Redis is unavailable: every read/write in
+# ActiveSupport::Cache::RedisCacheStore is wrapped in a rescue that logs
+# the error and returns a safe fallback instead of raising - so a Redis
+# outage disables throttling (fails open) rather than 500ing every
+# request. Confirmed straight from Rails' source
+# (ActiveSupport::Cache::RedisCacheStore#failsafe), not assumed.
+#
+# Shared across app server processes, unlike an in-memory store: every
+# process counts against the same Redis-backed counters, so the limits
+# below are enforced correctly across a whole fleet, not per-process.
+default_local_redis_url = Rails.env.test? ? "redis://localhost:6379/3" : "redis://localhost:6379/2"
+Rack::Attack.cache.store = ActiveSupport::Cache::RedisCacheStore.new(
+  url: ENV.fetch("REDIS_URL", default_local_redis_url)
+)
 
 # Blanket protection against abuse/scraping across the whole API.
 Rack::Attack.throttle("api/ip", limit: 300, period: 5.minutes) do |request|

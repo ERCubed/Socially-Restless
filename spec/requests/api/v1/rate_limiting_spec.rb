@@ -9,7 +9,10 @@ RSpec.describe "Rate limiting", type: :request do
   around do |example|
     Rack::Attack.enabled = true
     example.run
-    Rack::Attack.cache.store.clear
+    # Rack::Attack.reset!, not a raw store.clear: it's scoped to keys under
+    # rack-attack's own "rack::attack:" prefix, so it can't accidentally
+    # wipe unrelated cache entries sharing the same Redis DB.
+    Rack::Attack.reset!
     Rack::Attack.enabled = false
   end
 

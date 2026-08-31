@@ -27,6 +27,9 @@ gem "rack-cors"
 # Rate limiting / request throttling middleware
 gem "rack-attack"
 
+# Backs Rails.cache (:redis_cache_store) for real caching and rate limiting
+gem "redis", ">= 4.0.1"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
