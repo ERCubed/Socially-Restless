@@ -59,15 +59,15 @@ paths:
                 - post
               example:
                 post:
-                  id: 5832
+                  id: 12204
                   title: Hello
                   body: Body
-                  user_id: 7714
+                  user_id: 16066
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T18:02:46.616Z'
-                  updated_at: '2026-08-31T18:02:46.616Z'
+                  created_at: '2026-08-31T18:56:41.009Z'
+                  updated_at: '2026-08-31T18:56:41.009Z'
         '401':
           description: requires authentication
           content:
@@ -124,7 +124,7 @@ paths:
         required: true
         schema:
           type: string
-        example: Bearer b0eda361b3ac48ba12778eee459513bfbe6f30ae84e7ce4ac8cd3433eb937165
+        example: Bearer 52120a11adf37f16a77e2ea136c9044198dc0a013fce666fa4e048cfb66b01b7
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -149,7 +149,7 @@ paths:
               post:
                 title: Hello
                 body: Body
-                user_id: '7713'
+                user_id: '16065'
   "/api/v1/posts/{id}":
     delete:
       summary: destroy
@@ -161,7 +161,7 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer 9e44d6c9f2cb74bd4be21c044e86dfdf4b7c5221fa7c8e618d3b5b880ebd93c0
+        example: Bearer 7245ec98cae00a0c4f921e3ab204345da943173f452ba9026f047ebe459a4ee6
       - name: id
         in: path
         required: true
@@ -229,13 +229,13 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer b58fc99a3943323356415e17ad19c03c3d3211715d93a98dd113ba14ba0d60cc
+        example: Bearer b0df1479a582b7dae69a59a51bf04344b0eb378b2a5b58a5c69698b40a26ce38
       - name: id
         in: path
         required: true
         schema:
           type: integer
-        example: 5830
+        example: 12202
       responses:
         '200':
           description: does not increment view_count when the author views their own
@@ -281,15 +281,16 @@ paths:
                 - post
               example:
                 post:
-                  id: 5830
-                  title: Vitae occaecati saepe nisi.
-                  body: Aut sint voluptatem. Dolore omnis nobis. Aliquam minima occaecati.
-                  user_id: 7711
+                  id: 12202
+                  title: Neque non qui nisi.
+                  body: Quam autem nam. Ducimus qui perferendis. Mollitia ratione
+                    cum.
+                  user_id: 16063
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T18:02:46.581Z'
-                  updated_at: '2026-08-31T18:02:46.581Z'
+                  created_at: '2026-08-31T18:56:40.985Z'
+                  updated_at: '2026-08-31T18:56:40.985Z'
         '404':
           description: 404s for a nonexistent post
           content:
@@ -325,13 +326,13 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer f61042544e167223e5adf14a05d8fd3b4132496ac7e2f3044095a01663746889
+        example: Bearer d494989fbf5c8f4e5ab14dacc23f2ff2b5e7b564d42a3d39abf3030ffc1fd738
       - name: post_id
         in: path
         required: true
         schema:
           type: integer
-        example: 5843
+        example: 12215
       responses:
         '200':
           description: updates the existing rating in place on a second call, without
@@ -367,12 +368,12 @@ paths:
                 - rating
               example:
                 rating:
-                  id: 1105
-                  post_id: 5839
-                  user_id: 7737
+                  id: 2257
+                  post_id: 12211
+                  user_id: 16089
                   score: 5
-                  created_at: '2026-08-31T18:02:47.027Z'
-                  updated_at: '2026-08-31T18:02:47.033Z'
+                  created_at: '2026-08-31T18:56:41.432Z'
+                  updated_at: '2026-08-31T18:56:41.438Z'
         '201':
           description: lets different users rate the same post independently
           content:
@@ -406,12 +407,12 @@ paths:
                 - rating
               example:
                 rating:
-                  id: 1107
-                  post_id: 5840
-                  user_id: 7738
+                  id: 2259
+                  post_id: 12212
+                  user_id: 16090
                   score: 5
-                  created_at: '2026-08-31T18:02:47.061Z'
-                  updated_at: '2026-08-31T18:02:47.061Z'
+                  created_at: '2026-08-31T18:56:41.464Z'
+                  updated_at: '2026-08-31T18:56:41.464Z'
         '401':
           description: requires authentication
           content:
@@ -519,7 +520,7 @@ paths:
         required: true
         schema:
           type: string
-        example: Bearer 6a1ac4c83e24ae70172245b891e532d007e2a364325ef5687f22a16fb770d527
+        example: Bearer d6c0aeba1997b1cca82fee2d23295f43eb302f6356e138959e902b2303e0ff34
     post:
       summary: create
       tags:
@@ -561,13 +562,13 @@ paths:
                 - token
               example:
                 user:
-                  id: 7749
+                  id: 16101
                   username: user146
                   email: user146@example.com
-                  first_name: Avis
-                  last_name: Mayert
-                  created_at: '2026-08-31T18:02:47.131Z'
-                token: '09db7c1c0d4836a466f16d7dd0d5a7e7e677d9b3e8f03cca215924d1b05d3054'
+                  first_name: My
+                  last_name: Kassulke
+                  created_at: '2026-08-31T18:56:41.529Z'
+                token: 1394990f7dc75e93945774f3be2e246e15d2019a34b7f3b650497f1d86c21c40
         '401':
           description: rejects an unknown email
           content:
@@ -729,39 +730,39 @@ paths:
                 - meta
               example:
                 posts:
-                - id: 5919
-                  title: Nisi saepe quod error.
-                  body: Aliquid qui ex. Nihil qui eum. Veniam id libero.
-                  user_id: 7835
+                - id: 12291
+                  title: Rem quis qui et.
+                  body: Magni incidunt et. Sunt magni molestiae. Facilis quis eligendi.
+                  user_id: 16187
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T18:02:47.831Z'
-                  updated_at: '2026-08-31T18:02:47.831Z'
+                  created_at: '2026-08-31T18:56:42.180Z'
+                  updated_at: '2026-08-31T18:56:42.180Z'
                   author:
-                    id: 7835
+                    id: 16187
                     username: user229
                     email: user232@example.com
-                    first_name: Manual
-                    last_name: Emmerich
-                    created_at: '2026-08-31T18:02:47.829Z'
-                - id: 5918
-                  title: Aut neque illo voluptates.
-                  body: Inventore eos vel. Qui saepe voluptatem. Consequatur suscipit
-                    animi.
-                  user_id: 7834
+                    first_name: Lionel
+                    last_name: Kerluke
+                    created_at: '2026-08-31T18:56:42.178Z'
+                - id: 12290
+                  title: Officia incidunt qui et.
+                  body: Rerum adipisci sint. Dolor iusto deserunt. Voluptatem ducimus
+                    in.
+                  user_id: 16186
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T18:02:47.713Z'
-                  updated_at: '2026-08-31T18:02:47.713Z'
+                  created_at: '2026-08-31T18:56:42.066Z'
+                  updated_at: '2026-08-31T18:56:42.066Z'
                   author:
-                    id: 7834
+                    id: 16186
                     username: user228
                     email: user231@example.com
-                    first_name: Patti
-                    last_name: Olson
-                    created_at: '2026-08-31T18:02:47.711Z'
+                    first_name: Ena
+                    last_name: Fay
+                    created_at: '2026-08-31T18:56:42.065Z'
                 meta:
                   per_page: 10
                   has_more: false
@@ -796,7 +797,7 @@ paths:
         required: false
         schema:
           type: string
-        example: MjAyNi0wOC0zMVQxODowMjo0Ny42NDg2NzJafDU5MTI=
+        example: MjAyNi0wOC0zMVQxODo1Njo0MS45OTc2MzBafDEyMjg0
       - name: min_rating
         in: query
         required: false
@@ -857,13 +858,13 @@ paths:
                 - token
               example:
                 user:
-                  id: 7849
+                  id: 16201
                   username: newuser
                   email: newuser@example.com
                   first_name:
                   last_name:
-                  created_at: '2026-08-31T18:02:48.020Z'
-                token: dcb8e8db8d5ae04f66ca473ab7b7a8a5ff70b92c9238053444bdd58618166d62
+                  created_at: '2026-08-31T18:56:42.372Z'
+                token: 1ae6241ecb6be5073d62c832fcaa6401296af2ff72324098c852834664ed8499
         '422':
           description: rejects duplicate emails case-insensitively
           content:
@@ -961,7 +962,7 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer 6628231e348d778b7c0f7aaa2db0eed1f39908a60f049cab5cb84e86b458e683
+        example: Bearer aaa44b633fcb06bc34308df8a04d571a47dc95a86b8b0e15f6f383a2f310a7ba
       - name: page
         in: query
         required: false
@@ -1046,30 +1047,207 @@ paths:
                 - meta
               example:
                 posts:
-                - id: 5961
-                  title: Labore in dolor sed.
-                  body: Sequi commodi iste. Placeat velit omnis. Voluptatem odio eius.
-                  user_id: 7847
+                - id: 12333
+                  title: Omnis alias dolor tempore.
+                  body: Molestias corporis soluta. Minus non odit. Assumenda eos qui.
+                  user_id: 16199
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T18:02:48.002Z'
-                  updated_at: '2026-08-31T18:02:48.002Z'
-                - id: 5960
-                  title: Nisi eligendi aut natus.
-                  body: Laudantium assumenda eligendi. Porro sunt quam. Libero rerum
-                    dolores.
-                  user_id: 7847
+                  created_at: '2026-08-31T18:56:42.349Z'
+                  updated_at: '2026-08-31T18:56:42.349Z'
+                - id: 12332
+                  title: Quasi reprehenderit sint sint.
+                  body: Porro ratione et. Mollitia quia reprehenderit. Voluptatem
+                    perspiciatis deleniti.
+                  user_id: 16199
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T18:02:48.001Z'
-                  updated_at: '2026-08-31T18:02:48.001Z'
+                  created_at: '2026-08-31T18:56:42.347Z'
+                  updated_at: '2026-08-31T18:56:42.347Z'
                 meta:
                   page: 1
                   per_page: 10
                   total_count: 2
                   total_pages: 1
+  "/health":
+    get:
+      summary: show
+      tags:
+      - Health
+      responses:
+        '200':
+          description: is not one of the pass/fail subsystem checks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  checked_at:
+                    type: string
+                  subsystems:
+                    type: object
+                    properties:
+                      database:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                          critical:
+                            type: boolean
+                          latency_ms:
+                            type: number
+                            format: float
+                        required:
+                        - status
+                        - critical
+                        - latency_ms
+                      cache:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                          critical:
+                            type: boolean
+                          latency_ms:
+                            type: number
+                            format: float
+                          error:
+                            type: string
+                        required:
+                        - status
+                        - critical
+                      rate_limiter:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                          critical:
+                            type: boolean
+                          latency_ms:
+                            type: number
+                            format: float
+                          error:
+                            type: string
+                        required:
+                        - status
+                        - critical
+                    required:
+                    - database
+                    - cache
+                    - rate_limiter
+                  latest_commit:
+                    type:
+                    - string
+                    - 'null'
+                required:
+                - status
+                - checked_at
+                - subsystems
+              example:
+                status: ok
+                checked_at: '2026-08-31T18:56:42Z'
+                subsystems:
+                  database:
+                    status: ok
+                    critical: true
+                    latency_ms: 0.12
+                  cache:
+                    status: ok
+                    critical: false
+                    latency_ms: 0.11
+                    error: Redis::CannotConnectError
+                  rate_limiter:
+                    status: ok
+                    critical: false
+                    latency_ms: 0.09
+                    error: Redis::CannotConnectError
+                latest_commit: fd9e7d5190
+        '503':
+          description: returns 503 and status unavailable when the database is unreachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  checked_at:
+                    type: string
+                  subsystems:
+                    type: object
+                    properties:
+                      database:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                          critical:
+                            type: boolean
+                          error:
+                            type: string
+                        required:
+                        - status
+                        - critical
+                        - error
+                      cache:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                          critical:
+                            type: boolean
+                          latency_ms:
+                            type: number
+                            format: float
+                        required:
+                        - status
+                        - critical
+                        - latency_ms
+                      rate_limiter:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                          critical:
+                            type: boolean
+                          latency_ms:
+                            type: number
+                            format: float
+                        required:
+                        - status
+                        - critical
+                        - latency_ms
+                    required:
+                    - database
+                    - cache
+                    - rate_limiter
+                  latest_commit:
+                    type: string
+                required:
+                - status
+                - checked_at
+                - subsystems
+              example:
+                status: unavailable
+                checked_at: '2026-08-31T18:56:42Z'
+                subsystems:
+                  database:
+                    status: error
+                    critical: true
+                    error: PG::ConnectionBad
+                  cache:
+                    status: ok
+                    critical: false
+                    latency_ms: 0.13
+                  rate_limiter:
+                    status: ok
+                    critical: false
+                    latency_ms: 0.15
+                latest_commit: fd9e7d5190
   "/up":
     get:
       summary: show
