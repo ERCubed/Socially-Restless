@@ -59,26 +59,19 @@ module Api
         if params[:cursor].present?
           render json: timeline_payload, status: :ok
         else
-          render json: Rails.cache.fetch(timeline_cache_key, expires_in: CACHE_EXPIRY) { timeline_payload }, status: :ok
+          cache_key = TimelineFeed.cache_key(per_page: per_page, min_rating: min_rating)
+          render json: Rails.cache.fetch(cache_key, expires_in: CACHE_EXPIRY) {
+            TimelineFeed.first_page(per_page: per_page, min_rating: min_rating)
+          }, status: :ok
         end
       end
 
       private
 
       def timeline_payload
-        scope = Post.kept.includes(:user)
-        scope = scope.where("average_rating >= ?", min_rating) if min_rating
+        posts, meta = paginate_by_cursor(TimelineFeed.scope(min_rating: min_rating))
 
-        posts, meta = paginate_by_cursor(scope)
-
-        {
-          posts: posts.map { |post| PostSerializer.new(post, include_author: true).as_json },
-          meta: meta
-        }
-      end
-
-      def timeline_cache_key
-        [ "timeline", "v1", per_page, min_rating ].join("/")
+        { posts: TimelineFeed.serialize(posts), meta: meta }
       end
 
       # Blank/missing/non-numeric all mean "no filter", same graceful

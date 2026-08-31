@@ -27,27 +27,25 @@ class Post < ApplicationRecord
     deleted_at.present?
   end
 
-  # Bumps view_count for one or more posts in a single atomic UPDATE
-  # (`SET view_count = view_count + 1`, not a Ruby read-modify-write), so
-  # concurrent viewers of the same post can't clobber each other's
-  # increment. Callers pass already-loaded Post instances and get their
-  # in-memory view_count kept in sync with the DB write, without a second
-  # SELECT round trip.
+  # Records one or more views without writing to Postgres on the request
+  # path: each view INCRs a Redis counter (ViewCounts.record) instead of
+  # hitting the view_count column directly, and FlushViewCountsJob applies
+  # the accumulated deltas in batches on a schedule. This used to be a
+  # synchronous `UPDATE ... SET view_count = view_count + 1` per call -
+  # correct, but real contention on a hot post under heavy concurrent
+  # traffic, and pure write volume at 1M+ views/day either way. Moving the
+  # counter into Redis removes both: the hot path no longer touches
+  # Postgres at all.
   #
-  # This still costs a synchronous write on the request path for every
-  # view, which is fine at this scale but becomes real contention on a hot
-  # post under heavy concurrent traffic (many requests all trying to lock
-  # and update the same row) or just adds up as pure write volume at 1M+
-  # views/day. The scale-up path if that shows up: stop writing to
-  # Postgres per-request and instead INCR a Redis counter per post,
-  # enqueue (Sidekiq) periodic/batched flushes of those counters into
-  # view_count, and read the Redis value (falling back to the column) for
-  # any view_count shown back to a client before the next flush.
+  # The in-memory view_count is still bumped so the *response* reflects
+  # the view that just happened, even though the column itself won't
+  # catch up until the next flush - a client shouldn't see their own view
+  # missing just because the write is now deferred.
   def self.record_views!(posts)
-    ids = posts.map(&:id)
-    return if ids.empty?
+    posts = Array(posts)
+    return if posts.empty?
 
-    where(id: ids).update_all("view_count = view_count + 1")
+    ViewCounts.record(posts.map(&:id))
     posts.each { |post| post.view_count += 1 }
   end
 

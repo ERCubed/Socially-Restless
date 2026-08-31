@@ -69,12 +69,29 @@ end
 RSpec.configure do |config|
   config.include FactoryBot::Syntax::Methods
   config.include ActiveSupport::Testing::TimeHelpers
+  # Gives specs `have_enqueued_job`/`perform_enqueued_jobs`. Requires
+  # explicitly swapping to the :test adapter below - just including the
+  # helper module isn't enough, and without the swap `have_enqueued_job`
+  # raises rather than asserting, regardless of what actually happened.
+  config.include ActiveJob::TestHelper
+  ActiveJob::Base.queue_adapter = :test
 
   # Rails.cache is a real Redis-backed store in test (see
   # config/environments/test.rb), not a null_store - so without this,
   # a cached response from one example (e.g. the Timeline endpoint) could
   # leak into a later, unrelated example expecting fresh data.
   config.before { Rails.cache.clear }
+
+  # ViewCounts has its own dedicated Redis connection/DB index, separate
+  # from Rails.cache, so clearing that doesn't touch this - pending view
+  # counters need their own reset for the same reason.
+  config.before { ViewCounts.redis.flushdb }
+
+  # Sidekiq's own Redis DB, holding the recurring jobs' heartbeat claims
+  # (see FlushViewCountsJob/WarmTimelineCacheJob) - without resetting it,
+  # a claim made by one example could still be "active" (within its TTL)
+  # when a later example expects to claim it fresh.
+  config.before { Sidekiq.redis(&:flushdb) }
 
   # Remove this line if you're not using ActiveRecord or ActiveRecord fixtures
   config.fixture_paths = [

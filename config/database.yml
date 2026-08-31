@@ -17,7 +17,29 @@ default: &default
   encoding: unicode
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  #
+  # Must be >= config/puma.rb's thread count: each thread that needs a DB
+  # connection concurrently checks one out of this pool, so a pool smaller
+  # than the thread count guarantees threads queue for a connection under
+  # load, not just under some edge case. Same default (3) as Puma's -
+  # literal defaults only matter when RAILS_MAX_THREADS is unset, which no
+  # real deployment should do, but they'd previously drifted (3 vs 5) in a
+  # way that happened to be safe (pool > threads) rather than by design.
+  #
+  # This pool is per-process: if config/puma.rb ever sets `workers N` (it
+  # doesn't today - single-process threaded mode), each worker gets its
+  # own independent pool of this size, so total connections become
+  # N x pool - check that against Postgres's max_connections before adding
+  # workers, not after.
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 3 } %>
+  # How long a thread waits for a pool connection to free up before
+  # raising ActiveRecord::ConnectionTimeoutError (handled gracefully as a
+  # 503 - see ApplicationController) rather than hanging indefinitely.
+  checkout_timeout: <%= ENV.fetch("DB_POOL_CHECKOUT_TIMEOUT", 5) %>
+  # Reclaims connections abandoned by threads that died without checking
+  # them back in (e.g. a killed request) - without this, those slots stay
+  # "checked out" forever and the effective pool shrinks over time.
+  reaping_frequency: <%= ENV.fetch("DB_POOL_REAPING_FREQUENCY", 10) %>
 
 
 development:
