@@ -7,8 +7,11 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
-      resources :users, only: [ :create ]
+      resources :users, only: [ :create ], param: :username do
+        resources :posts, only: [ :index ], controller: "users/posts"
+      end
       resource :session, only: [ :create, :destroy ]
+      resources :posts, only: [ :show, :create, :destroy ]
     end
   end
 
