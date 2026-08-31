@@ -3,7 +3,13 @@ require "rails_helper"
 RSpec.describe "Api::V1::Users", type: :request do
   describe "POST /api/v1/users" do
     let(:valid_params) do
-      { user: { username: "newuser", email: "newuser@example.com", password: "password123", password_confirmation: "password123" } }
+      {
+        user: {
+          username: "newuser", email: "newuser@example.com",
+          password: "password123", password_confirmation: "password123",
+          first_name: "Jane", last_name: "Doe"
+        }
+      }
     end
 
     it "creates a user and returns a token" do
@@ -14,8 +20,23 @@ RSpec.describe "Api::V1::Users", type: :request do
       expect(response).to have_http_status(:created)
       body = response.parsed_body
       expect(body["user"]["username"]).to eq("newuser")
+      expect(body["user"]["first_name"]).to eq("Jane")
+      expect(body["user"]["last_name"]).to eq("Doe")
       expect(body["user"]).not_to have_key("password_digest")
       expect(body["token"]).to be_present
+    end
+
+    it "creates a user without a first or last name" do
+      params = valid_params
+      params[:user].delete(:first_name)
+      params[:user].delete(:last_name)
+
+      post "/api/v1/users", params: params
+
+      expect(response).to have_http_status(:created)
+      body = response.parsed_body
+      expect(body["user"]["first_name"]).to be_nil
+      expect(body["user"]["last_name"]).to be_nil
     end
 
     it "returns a consistent error envelope for validation failures" do

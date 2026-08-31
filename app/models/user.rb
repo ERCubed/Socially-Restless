@@ -4,6 +4,7 @@ class User < ApplicationRecord
 
   before_validation :normalize_email
   before_validation :normalize_username
+  before_validation :normalize_name_fields
 
   EMAIL_FORMAT = URI::MailTo::EMAIL_REGEXP
 
@@ -13,6 +14,8 @@ class User < ApplicationRecord
   validates :email, presence: true, uniqueness: { case_sensitive: false },
                      format: { with: EMAIL_FORMAT, message: "must be a valid email address" }
   validates :password, length: { minimum: 8 }, allow_nil: true
+  validates :first_name, length: { maximum: 50 }, allow_blank: true
+  validates :last_name, length: { maximum: 50 }, allow_blank: true
 
   private
 
@@ -22,5 +25,10 @@ class User < ApplicationRecord
 
   def normalize_username
     self.username = username.strip if username.present?
+  end
+
+  def normalize_name_fields
+    self.first_name = first_name.strip if first_name.present?
+    self.last_name = last_name.strip if last_name.present?
   end
 end

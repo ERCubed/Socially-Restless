@@ -37,6 +37,20 @@ RSpec.describe User, type: :model do
       user.username = "not valid!"
       expect(user).not_to be_valid
     end
+
+    it "does not require a first or last name" do
+      user.first_name = nil
+      user.last_name = nil
+      expect(user).to be_valid
+    end
+
+    it "rejects a first or last name over 50 characters" do
+      user.first_name = "a" * 51
+      user.last_name = "a" * 51
+      expect(user).not_to be_valid
+      expect(user.errors[:first_name]).to be_present
+      expect(user.errors[:last_name]).to be_present
+    end
   end
 
   describe "normalization" do
@@ -50,6 +64,14 @@ RSpec.describe User, type: :model do
       user.username = "  padded  "
       user.valid?
       expect(user.username).to eq("padded")
+    end
+
+    it "strips whitespace from first and last name" do
+      user.first_name = "  Jane  "
+      user.last_name = "  Doe  "
+      user.valid?
+      expect(user.first_name).to eq("Jane")
+      expect(user.last_name).to eq("Doe")
     end
   end
 
