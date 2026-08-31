@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_31_012413) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_31_142009) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -24,6 +24,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_31_012413) do
     t.integer "view_count", default: 0, null: false
     t.index ["deleted_at", "created_at", "id"], name: "index_posts_on_deleted_at_and_created_at_and_id"
     t.index ["user_id"], name: "index_posts_on_user_id"
+  end
+
+  create_table "ratings", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "post_id", null: false
+    t.integer "score", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["post_id"], name: "index_ratings_on_post_id"
+    t.index ["user_id", "post_id"], name: "index_ratings_on_user_id_and_post_id", unique: true
+    t.index ["user_id"], name: "index_ratings_on_user_id"
+    t.check_constraint "score >= 1 AND score <= 5", name: "ratings_score_range_check"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -51,5 +63,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_31_012413) do
   end
 
   add_foreign_key "posts", "users"
+  add_foreign_key "ratings", "posts"
+  add_foreign_key "ratings", "users"
   add_foreign_key "sessions", "users"
 end

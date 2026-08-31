@@ -11,7 +11,9 @@ Rails.application.routes.draw do
         resources :posts, only: [ :index ], controller: "users/posts"
       end
       resource :session, only: [ :create, :destroy ]
-      resources :posts, only: [ :show, :create, :destroy ]
+      resources :posts, only: [ :show, :create, :destroy ] do
+        resource :rating, only: [ :create ]
+      end
     end
   end
 
