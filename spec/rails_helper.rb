@@ -50,12 +50,11 @@ RSpec::OpenAPI.ignored_paths = [ %r{\A/api-docs} ]
 # end with _spec.rb. You can configure this pattern with the --pattern
 # option on the command line or in ~/.rspec, .rspec or `.rspec-local`.
 #
-# The following line is provided for convenience purposes. It has the downside
-# of increasing the boot-up time by auto-requiring all files in the support
-# directory. Alternatively, in the individual `*_spec.rb` files, manually
-# require only the support files necessary.
-#
-# Rails.root.glob('spec/support/**/*.rb').sort_by(&:to_s).each { |f| require f }
+# Enabled (unlike the Rails default) for spec/support/shared_examples/ -
+# the three recurring-job specs (FlushViewCountsJob, WarmTimelineCacheJob,
+# RefreshTimelineFeedViewJob) share an identical heartbeat/reschedule
+# contract worth testing once, not three times.
+Rails.root.glob('spec/support/**/*.rb').sort_by(&:to_s).each { |f| require f }
 
 # Ensures that the test database schema matches the current schema file.
 # If there are pending migrations it will invoke `db:test:prepare` to
