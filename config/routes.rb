@@ -17,6 +17,9 @@ Rails.application.routes.draw do
       resource :session, only: [ :create, :destroy ]
       resources :posts, only: [ :show, :create, :update, :destroy ] do
         resource :rating, only: [ :create ]
+        collection do
+          get :search
+        end
       end
       get "timeline", to: "timeline#index"
     end

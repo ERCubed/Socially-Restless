@@ -105,6 +105,64 @@ RSpec.describe Post, type: :model do
     end
   end
 
+  describe ".search" do
+    it "matches a term appearing in the title" do
+      matching = create(:post, title: "Ruby on Rails tips", body: "Nothing relevant here")
+      create(:post, title: "Unrelated", body: "Also unrelated")
+
+      expect(Post.search("rails")).to contain_exactly(matching)
+    end
+
+    it "matches a term appearing only in the body" do
+      matching = create(:post, title: "Cooking", body: "A guide to baking sourdough bread")
+      create(:post, title: "Cooking", body: "Nothing about that other topic")
+
+      expect(Post.search("sourdough")).to contain_exactly(matching)
+    end
+
+    it "ranks a title match above a body-only match for the same term" do
+      body_match = create(:post, title: "Unrelated title", body: "mentions astronomy briefly")
+      title_match = create(:post, title: "All about astronomy", body: "unrelated body text")
+
+      results = Post.search("astronomy").to_a
+
+      expect(results).to eq([ title_match, body_match ])
+    end
+
+    it "returns no results for a term that doesn't appear anywhere" do
+      create(:post, title: "Something", body: "Something else entirely")
+
+      expect(Post.search("nonexistentterm")).to be_empty
+    end
+
+    it "does not raise for search input with stray punctuation" do
+      create(:post, title: "Title", body: "Body")
+
+      expect { Post.search("weird \"unterminated quote").to_a }.not_to raise_error
+    end
+  end
+
+  describe ".with_metadata" do
+    it "matches a post whose metadata is a superset of the given criteria" do
+      matching = create(:post, metadata: { "tags" => [ "ruby", "rails" ] })
+      create(:post, metadata: { "tags" => [ "python" ] })
+
+      expect(Post.with_metadata("tags" => [ "ruby" ])).to contain_exactly(matching)
+    end
+
+    it "does not match a post with no metadata at all" do
+      create(:post)
+
+      expect(Post.with_metadata("tags" => [ "ruby" ])).to be_empty
+    end
+
+    it "defaults metadata to an empty hash, not null" do
+      post = create(:post)
+
+      expect(post.metadata).to eq({})
+    end
+  end
+
   describe "#recalculate_rating_stats!" do
     it "is zero with no ratings" do
       post.save!

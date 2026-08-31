@@ -14,7 +14,12 @@ module Paginatable
   # with `paginate_by_cursor` below, which is for the opposite case: an
   # unbounded, all-users feed where deep paging and 1M+ rows are the norm.
   def paginate(scope)
-    total_count = scope.count
+    # unscope(:select, :order): a plain `SELECT COUNT(*) ... WHERE ...`
+    # regardless of what the scope's own select/order look like - needed
+    # for callers like Post.search, whose select includes a computed
+    # `ts_rank(...) AS search_rank` column that Postgres can't combine
+    # with an aggregate COUNT(*) in the same query.
+    total_count = scope.unscope(:select, :order).count
     total_pages = (total_count / per_page.to_f).ceil
 
     records = scope.offset((page - 1) * per_page).limit(per_page)
@@ -46,22 +51,24 @@ module Paginatable
   # the page is, and it never re-walks rows already returned.
   #
   # Verified against a real 1.2M-row table (EXPLAIN ANALYZE, not just
-  # theory): a deep cursor - most of the table already paged past - hits a
-  # Bitmap Index Scan and returns in well under 1ms, as expected. A shallow
-  # cursor near the top - e.g. "page 2" of a feed, where ~all 1.2M rows
-  # still match "older than this" - is where it gets interesting: Postgres'
-  # planner estimates that as low-selectivity and, despite the covering
-  # index being available (confirmed by forcing it on with
-  # `enable_seqscan = off`), chooses a full Seq Scan + top-N sort instead,
-  # at ~55ms. Neither disabling parallelism nor raising
-  # `default_statistics_target` on created_at changed that choice - this
-  # is a known Postgres cost-estimation limitation for "ORDER BY ... LIMIT"
-  # over a high-selectivity range condition, not a missing index or a bug
-  # here. The saving grace: unlike OFFSET, that cost is bounded by table
-  # size, not by page depth, and it only hits the first handful of pages
-  # (the ones a real feed serves the most). If that 55ms ever shows up as
-  # a real bottleneck, the fix isn't a fancier query - it's caching the
-  # first page or two, which the Timeline endpoint needs anyway.
+  # theory - see doc/query_analysis.md for full captured output and a
+  # four-point selectivity table): cost here tracks *selectivity* (how many
+  # rows are left after the cursor), not literally page depth. A deep
+  # cursor - under ~2% of the table remaining - hits a Bitmap Index Scan on
+  # the (deleted_at, created_at, id) index and returns in single-digit ms.
+  # A shallow cursor near the top - e.g. "page 2" of a feed, where most of
+  # the table still matches "older than this" - falls back to a Seq Scan +
+  # top-N sort instead, at up to ~150ms for the unfiltered first page.
+  # Forcing the index on with `enable_seqscan = off` at that selectivity
+  # made the query slower (250ms, not faster) - so this isn't a planner
+  # limitation being routed around, it's the planner making the right call:
+  # past a certain fraction of the table, a sequential scan really does
+  # beat scattered index lookups. The saving grace is unchanged either way:
+  # unlike OFFSET, that cost is bounded by table size, not by page depth,
+  # and it only hits the first handful of pages (the ones a real feed
+  # serves the most) - which is exactly the page Timeline's cache already
+  # targets (see WarmTimelineCacheJob), so real users essentially never pay
+  # for it.
   #
   # The other trade-off, true regardless of the above: no "jump to page
   # 50" (only "give me what comes after this cursor") and no exact total

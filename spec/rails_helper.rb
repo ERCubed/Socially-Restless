@@ -76,6 +76,19 @@ RSpec.configure do |config|
   config.include ActiveJob::TestHelper
   ActiveJob::Base.queue_adapter = :test
 
+  # A materialized view created WITH NO DATA (which is what db:test:prepare
+  # always produces - see TimelineFeedEntry#refresh! - regardless of how
+  # it looked when structure.sql was dumped) can't even be *read* until
+  # its first successful REFRESH, not just refreshed CONCURRENTLY: any
+  # plain SELECT against it raises PG::ObjectNotInPrerequisiteState until
+  # then. Once populated, that's a persistent catalog-level fact, not
+  # something a later example's transaction rollback undoes - so doing
+  # this exactly once, here, guarantees every example (regardless of
+  # ordering) sees a genuinely queryable view, the same way a real
+  # deployment's first RefreshTimelineFeedViewJob tick would before
+  # anything else ever touches it.
+  config.before(:suite) { TimelineFeedEntry.refresh! }
+
   # Rails.cache is a real Redis-backed store in test (see
   # config/environments/test.rb), not a null_store - so without this,
   # a cached response from one example (e.g. the Timeline endpoint) could

@@ -5,6 +5,69 @@ RSpec.describe "Api::V1::Posts", type: :request do
   let(:session) { Session.start!(user: user) }
   let(:auth_headers) { { "Authorization" => "Bearer #{session.token}" } }
 
+  describe "GET /api/v1/posts/search" do
+    it "does not require authentication" do
+      create(:post, title: "Searchable title", body: "Body")
+
+      get "/api/v1/posts/search", params: { q: "searchable" }
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "returns posts matching the query, across all users, with author info" do
+      author = create(:user, username: "dana")
+      matching = create(:post, user: author, title: "Astronomy basics", body: "Body")
+      create(:post, title: "Unrelated", body: "Body")
+
+      get "/api/v1/posts/search", params: { q: "astronomy" }
+
+      body = response.parsed_body
+      expect(body["posts"].map { |p| p["id"] }).to eq([ matching.id ])
+      expect(body["posts"].first["author"]["username"]).to eq("dana")
+    end
+
+    it "excludes soft-deleted posts" do
+      create(:post, title: "Astronomy basics", body: "Body", deleted_at: Time.current)
+
+      get "/api/v1/posts/search", params: { q: "astronomy" }
+
+      expect(response.parsed_body["posts"]).to eq([])
+    end
+
+    it "returns a blank array, not an error, for a query with no matches" do
+      get "/api/v1/posts/search", params: { q: "nonexistentterm" }
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body
+      expect(body["posts"]).to eq([])
+      expect(body["meta"]).to include("total_count" => 0)
+    end
+
+    it "requires q" do
+      get "/api/v1/posts/search"
+
+      expect(response).to have_http_status(:bad_request)
+    end
+
+    it "requires q to be non-blank" do
+      get "/api/v1/posts/search", params: { q: "" }
+
+      expect(response).to have_http_status(:bad_request)
+    end
+
+    it "paginates results with page/per_page" do
+      15.times { |i| create(:post, title: "Astronomy post #{i}", body: "Body") }
+
+      get "/api/v1/posts/search", params: { q: "astronomy", per_page: 5, page: 2 }
+
+      body = response.parsed_body
+      expect(body["posts"].size).to eq(5)
+      expect(body["meta"]).to eq(
+        "page" => 2, "per_page" => 5, "total_count" => 15, "total_pages" => 3
+      )
+    end
+  end
+
   describe "GET /api/v1/posts/:id" do
     it "does not require authentication" do
       post_record = create(:post)
@@ -92,6 +155,20 @@ RSpec.describe "Api::V1::Posts", type: :request do
       expect(response.parsed_body["post"]["user_id"]).to eq(user.id)
     end
 
+    it "accepts and stores free-form metadata" do
+      post "/api/v1/posts",
+           params: { post: { title: "Hello", body: "Body", metadata: { tags: [ "ruby", "rails" ] } } },
+           headers: auth_headers
+
+      expect(response.parsed_body["post"]["metadata"]).to eq("tags" => [ "ruby", "rails" ])
+    end
+
+    it "defaults metadata to an empty object when not given" do
+      post "/api/v1/posts", params: valid_params, headers: auth_headers
+
+      expect(response.parsed_body["post"]["metadata"]).to eq({})
+    end
+
     it "returns a validation error for a blank title" do
       post "/api/v1/posts", params: { post: { title: "", body: "Body" } }, headers: auth_headers
 
@@ -160,6 +237,24 @@ RSpec.describe "Api::V1::Posts", type: :request do
       expect(response).to have_http_status(:conflict)
       expect(response.parsed_body["error"]["message"]).to match(/updated by someone else/i)
       expect(post_record.reload.title).to eq("Client A's edit")
+    end
+
+    it "updates metadata when given" do
+      patch "/api/v1/posts/#{post_record.id}",
+            params: { post: { title: "New", lock_version: 0, metadata: { tags: [ "ruby" ] } } },
+            headers: auth_headers
+
+      expect(response.parsed_body["post"]["metadata"]).to eq("tags" => [ "ruby" ])
+    end
+
+    it "preserves existing metadata when an update doesn't mention it" do
+      post_record.update_columns(metadata: { "tags" => [ "ruby" ] })
+
+      patch "/api/v1/posts/#{post_record.id}",
+            params: { post: { title: "New title only", lock_version: 0 } },
+            headers: auth_headers
+
+      expect(response.parsed_body["post"]["metadata"]).to eq("tags" => [ "ruby" ])
     end
 
     it "ignores a client-supplied user_id" do
