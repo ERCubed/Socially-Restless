@@ -31,3 +31,10 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+
+# Ignore SimpleCov's generated coverage report.
+/coverage/
+
+# Ignore Redis/Valkey's local RDB snapshot (written to the CWD if a local
+# redis-server/valkey-server happens to be started from here).
+/dump.rdb
