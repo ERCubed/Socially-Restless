@@ -6,7 +6,37 @@ module Paginatable
 
   private
 
-  # Keyset (cursor) pagination on (created_at, id) descending, instead of
+  # Offset pagination: page/per_page, with an exact total_count/total_pages.
+  # Good fit for a *bounded* dataset, like one user's own posts - a profile
+  # page benefits from "jump to page 3" more than it suffers from OFFSET's
+  # cost growing with page depth, since no single user is realistically
+  # paging deep into hundreds of thousands of their own posts. Contrast
+  # with `paginate_by_cursor` below, which is for the opposite case: an
+  # unbounded, all-users feed where deep paging and 1M+ rows are the norm.
+  def paginate(scope)
+    total_count = scope.count
+    total_pages = (total_count / per_page.to_f).ceil
+
+    records = scope.offset((page - 1) * per_page).limit(per_page)
+
+    meta = {
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages
+    }
+
+    [ records, meta ]
+  end
+
+  def page
+    @page ||= [ params[:page].to_i, 1 ].max
+  end
+
+  # Not yet wired up to a route - reserved for the Activity Timeline
+  # endpoint (recent posts across *all* users), which is the actual
+  # unbounded, 1M+-row case this was built and verified for. Keyset
+  # (cursor) pagination on (created_at, id) descending, instead of
   # OFFSET/LIMIT. `OFFSET n` forces Postgres to walk and discard every one
   # of the n skipped rows before it can return anything, and a `COUNT(*)`
   # over a filtered multi-million-row table is itself a full scan - both
