@@ -260,6 +260,7 @@ brute-force/credential-stuffing/spam-signup targets.
   limiting — `degraded` but still `200`, matching how the app is actually built to behave
   without them). It also reports `latest_commit` (from `GIT_COMMIT` in production, or
   `.git/HEAD` in dev/CI) so you can confirm which build is actually running.
+  
 - **Graceful degradation when Redis is unavailable.** Verified end-to-end with Redis
   genuinely stopped (not just killed for a moment — the first attempt looked convincing
   but turned out to be invalid: Redis on the dev machine runs as a `brew services`-managed

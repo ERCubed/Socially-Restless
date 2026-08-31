@@ -61,15 +61,15 @@ paths:
                 - post
               example:
                 post:
-                  id: 807
+                  id: 1917
                   title: Hello
                   body: Body
-                  user_id: 1096
+                  user_id: 2554
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T19:23:22.353Z'
-                  updated_at: '2026-08-31T19:23:22.353Z'
+                  created_at: '2026-08-31T19:31:13.715Z'
+                  updated_at: '2026-08-31T19:31:13.715Z'
                   lock_version: 0
         '401':
           description: requires authentication
@@ -127,7 +127,7 @@ paths:
         required: true
         schema:
           type: string
-        example: Bearer de1d22241c46f908d3c6e060f38206e3d63439d99da123778e1b361f9a01df63
+        example: Bearer bfe12bc8328473938edc8a3cf0dd2393b6010a989269fcded09e5370bbed9efd
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -152,7 +152,7 @@ paths:
               post:
                 title: Hello
                 body: Body
-                user_id: '1095'
+                user_id: '2553'
   "/api/v1/posts/{id}":
     delete:
       summary: destroy
@@ -164,7 +164,7 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer 6072fc8576174f1284946319039ae7222f01b346216706f40c26bbd5257e8e04
+        example: Bearer 1d6929250133eb9d7ff5e58943e104cfab6d18491570b39a3c9cf0f4087b38e2
       - name: id
         in: path
         required: true
@@ -232,13 +232,13 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer 37cc8e0a990e609120dad44faad74bb37105e226afeb2aa15d26bc9f8e2e8d46
+        example: Bearer 3b28d0e9a25f5d1528880537cda743f3e3a43939104943fdfbe90ac45cd433b9
       - name: id
         in: path
         required: true
         schema:
           type: integer
-        example: 805
+        example: 1915
       responses:
         '200':
           description: does not increment view_count when the author views their own
@@ -286,16 +286,15 @@ paths:
                 - post
               example:
                 post:
-                  id: 805
-                  title: Id modi quis qui.
-                  body: Blanditiis rerum repudiandae. Culpa alias iure. Quaerat soluta
-                    tenetur.
-                  user_id: 1093
+                  id: 1915
+                  title: Ipsam voluptates eaque et.
+                  body: Quia et rerum. Accusamus omnis debitis. Quas dolor ratione.
+                  user_id: 2551
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T19:23:22.319Z'
-                  updated_at: '2026-08-31T19:23:22.319Z'
+                  created_at: '2026-08-31T19:31:13.687Z'
+                  updated_at: '2026-08-31T19:31:13.687Z'
                   lock_version: 0
         '404':
           description: 404s for a nonexistent post
@@ -331,7 +330,7 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer 5d2f8a49c2639a260c04c03666af87e0d7bf27dd20a82e28ca9dfd24972b3588
+        example: Bearer 86c9799690efdf6f0eeeea8fd7f3e0bbbdf264eee8c190a5adc3a26659884464
       - name: id
         in: path
         required: true
@@ -385,16 +384,16 @@ paths:
                 - post
               example:
                 post:
-                  id: 812
+                  id: 1922
                   title: New
                   body: Original body
-                  user_id: 1105
+                  user_id: 2563
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
                   lock_version: 1
-                  created_at: '2026-08-31T19:23:22.442Z'
-                  updated_at: '2026-08-31T19:23:22.446Z'
+                  created_at: '2026-08-31T19:31:13.783Z'
+                  updated_at: '2026-08-31T19:31:13.787Z'
         '400':
           description: requires lock_version to be present
           content:
@@ -546,7 +545,7 @@ paths:
                 title: New
                 body: Updated body
                 lock_version: '0'
-                user_id: '1104'
+                user_id: '2562'
   "/api/v1/posts/{post_id}/rating":
     post:
       summary: create
@@ -558,13 +557,13 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer 58b9e83599ec9b52d72164c228bebfc0e4e6f41b95c0748a80bccdcc2333f3a3
+        example: Bearer 3d670c2153886d05a164e3bc1475e04637051b2fbfefdfcd1e410abace3ea714
       - name: post_id
         in: path
         required: true
         schema:
           type: integer
-        example: 826
+        example: 1936
       responses:
         '200':
           description: updates the existing rating in place on a second call, without
@@ -600,12 +599,12 @@ paths:
                 - rating
               example:
                 rating:
-                  id: 150
-                  post_id: 822
-                  user_id: 1130
+                  id: 342
+                  post_id: 1932
+                  user_id: 2588
                   score: 5
-                  created_at: '2026-08-31T19:23:22.889Z'
-                  updated_at: '2026-08-31T19:23:22.896Z'
+                  created_at: '2026-08-31T19:31:14.200Z'
+                  updated_at: '2026-08-31T19:31:14.206Z'
         '201':
           description: lets different users rate the same post independently
           content:
@@ -639,12 +638,12 @@ paths:
                 - rating
               example:
                 rating:
-                  id: 152
-                  post_id: 823
-                  user_id: 1131
+                  id: 344
+                  post_id: 1933
+                  user_id: 2589
                   score: 5
-                  created_at: '2026-08-31T19:23:22.924Z'
-                  updated_at: '2026-08-31T19:23:22.924Z'
+                  created_at: '2026-08-31T19:31:14.234Z'
+                  updated_at: '2026-08-31T19:31:14.234Z'
         '401':
           description: requires authentication
           content:
@@ -752,7 +751,7 @@ paths:
         required: true
         schema:
           type: string
-        example: Bearer cc2d6239aa7ab2f21d8c2001732a58a4f3413d1383ae6ba0ce7eab72b1b2ce13
+        example: Bearer f354be98ffc183f19caaf7b5fcf81f286286878d234917b4f0cde2135880395f
     post:
       summary: create
       tags:
@@ -794,13 +793,13 @@ paths:
                 - token
               example:
                 user:
-                  id: 1142
+                  id: 2600
                   username: user157
                   email: user157@example.com
-                  first_name: Oswaldo
-                  last_name: Hintz
-                  created_at: '2026-08-31T19:23:22.995Z'
-                token: c11a53797f295c06c5becb28cab5a2dedbb59f5fa3c3841c0a12bd8ebb566f7e
+                  first_name: Karolyn
+                  last_name: Cummings
+                  created_at: '2026-08-31T19:31:14.301Z'
+                token: d239ce0d96b21052989beda653c6220fc737e08c9382ce554ed770d3dba81e82
         '401':
           description: rejects an unknown email
           content:
@@ -964,41 +963,41 @@ paths:
                 - meta
               example:
                 posts:
-                - id: 902
-                  title: Deserunt error odit laudantium.
-                  body: Quidem labore facere. Blanditiis voluptatem qui. Qui mollitia
-                    voluptates.
-                  user_id: 1228
+                - id: 2012
+                  title: Odio cum similique voluptate.
+                  body: Sint reiciendis fugit. Unde omnis facere. Impedit alias officiis.
+                  user_id: 2686
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
                   lock_version: 0
-                  created_at: '2026-08-31T19:23:23.674Z'
-                  updated_at: '2026-08-31T19:23:23.674Z'
+                  created_at: '2026-08-31T19:31:14.934Z'
+                  updated_at: '2026-08-31T19:31:14.934Z'
                   author:
-                    id: 1228
+                    id: 2686
                     username: user240
                     email: user243@example.com
-                    first_name: Stuart
-                    last_name: Feil
-                    created_at: '2026-08-31T19:23:23.671Z'
-                - id: 901
-                  title: Ea pariatur sed non.
-                  body: Rerum ut cupiditate. Modi culpa sequi. Iure et ab.
-                  user_id: 1227
+                    first_name: Nancey
+                    last_name: Roberts
+                    created_at: '2026-08-31T19:31:14.932Z'
+                - id: 2011
+                  title: Sint tenetur blanditiis dolorem.
+                  body: Mollitia consequatur est. Quisquam reprehenderit non. Minus
+                    voluptatem ipsa.
+                  user_id: 2685
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
                   lock_version: 0
-                  created_at: '2026-08-31T19:23:23.561Z'
-                  updated_at: '2026-08-31T19:23:23.561Z'
+                  created_at: '2026-08-31T19:31:14.821Z'
+                  updated_at: '2026-08-31T19:31:14.821Z'
                   author:
-                    id: 1227
+                    id: 2685
                     username: user239
                     email: user242@example.com
-                    first_name: Vilma
-                    last_name: Bartoletti
-                    created_at: '2026-08-31T19:23:23.560Z'
+                    first_name: Donn
+                    last_name: Lueilwitz
+                    created_at: '2026-08-31T19:31:14.820Z'
                 meta:
                   per_page: 10
                   has_more: false
@@ -1027,13 +1026,39 @@ paths:
                 error:
                   message: invalid pagination cursor
                   details: []
+        '503':
+          description: returns a 503 with the standard error envelope instead of a
+            raw 500
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      details:
+                        type: array
+                        items: {}
+                    required:
+                    - message
+                    - details
+                required:
+                - error
+              example:
+                error:
+                  message: The server is temporarily overloaded. Please try again
+                    shortly.
+                  details: []
       parameters:
       - name: cursor
         in: query
         required: false
         schema:
           type: string
-        example: MjAyNi0wOC0zMVQxOToyMzoyMy40OTczODRafDg5NQ==
+        example: MjAyNi0wOC0zMVQxOTozMToxNC43NTg3MjBafDIwMDU=
       - name: min_rating
         in: query
         required: false
@@ -1094,13 +1119,13 @@ paths:
                 - token
               example:
                 user:
-                  id: 1242
+                  id: 2700
                   username: newuser
                   email: newuser@example.com
                   first_name:
                   last_name:
-                  created_at: '2026-08-31T19:23:23.875Z'
-                token: b6cd30b195b269b976fbb6a265c8ff663c0f4f889f6147ea134c944791ef42bc
+                  created_at: '2026-08-31T19:31:15.101Z'
+                token: e55f0a3c2c112cbbfd63b5db9b8817bbaac9cb4daa3998f6f84b40352a427ef9
         '422':
           description: rejects duplicate emails case-insensitively
           content:
@@ -1198,7 +1223,7 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer f452e405651828ec1e3dd42ceedc7ab8e659b7ac7afc958879a46fbb4b16ad9a
+        example: Bearer 57de1de4495d07f93531fe9e2422d7fb8fd769fd6e341e17bde22d01c8e14a02
       - name: page
         in: query
         required: false
@@ -1285,26 +1310,26 @@ paths:
                 - meta
               example:
                 posts:
-                - id: 944
-                  title: Exercitationem hic facilis similique.
-                  body: Officia quos sed. Ut labore incidunt. Quidem quos vel.
-                  user_id: 1240
+                - id: 2054
+                  title: Reprehenderit cumque fugiat illum.
+                  body: Velit iure eveniet. Molestiae blanditiis debitis. Aut et deserunt.
+                  user_id: 2698
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
                   lock_version: 0
-                  created_at: '2026-08-31T19:23:23.850Z'
-                  updated_at: '2026-08-31T19:23:23.850Z'
-                - id: 943
-                  title: Et ut laboriosam sequi.
-                  body: Aut laborum similique. Quia eos ipsa. Odit autem non.
-                  user_id: 1240
+                  created_at: '2026-08-31T19:31:15.084Z'
+                  updated_at: '2026-08-31T19:31:15.084Z'
+                - id: 2053
+                  title: Voluptatem labore adipisci et.
+                  body: Nemo enim sunt. Deleniti minus et. Delectus recusandae ut.
+                  user_id: 2698
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
                   lock_version: 0
-                  created_at: '2026-08-31T19:23:23.846Z'
-                  updated_at: '2026-08-31T19:23:23.846Z'
+                  created_at: '2026-08-31T19:31:15.082Z'
+                  updated_at: '2026-08-31T19:31:15.082Z'
                 meta:
                   page: 1
                   per_page: 10
@@ -1388,23 +1413,23 @@ paths:
                 - subsystems
               example:
                 status: ok
-                checked_at: '2026-08-31T19:23:23Z'
+                checked_at: '2026-08-31T19:31:15Z'
                 subsystems:
                   database:
                     status: ok
                     critical: true
-                    latency_ms: 0.52
+                    latency_ms: 0.13
                   cache:
                     status: ok
                     critical: false
-                    latency_ms: 0.16
+                    latency_ms: 0.11
                     error: Redis::CannotConnectError
                   rate_limiter:
                     status: ok
                     critical: false
-                    latency_ms: 0.28
+                    latency_ms: 0.11
                     error: Redis::CannotConnectError
-                latest_commit: f9a830c2a7
+                latest_commit: 23198bd454
         '503':
           description: returns 503 and status unavailable when the database is unreachable
           content:
@@ -1472,7 +1497,7 @@ paths:
                 - subsystems
               example:
                 status: unavailable
-                checked_at: '2026-08-31T19:23:23Z'
+                checked_at: '2026-08-31T19:31:15Z'
                 subsystems:
                   database:
                     status: error
@@ -1481,12 +1506,12 @@ paths:
                   cache:
                     status: ok
                     critical: false
-                    latency_ms: 0.25
+                    latency_ms: 0.11
                   rate_limiter:
                     status: ok
                     critical: false
-                    latency_ms: 0.11
-                latest_commit: f9a830c2a7
+                    latency_ms: 0.1
+                latest_commit: 23198bd454
   "/up":
     get:
       summary: show

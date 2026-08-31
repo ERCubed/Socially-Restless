@@ -4,6 +4,7 @@ class ApplicationController < ActionController::API
   rescue_from ActionController::ParameterMissing, with: :render_bad_request
   rescue_from Cursor::DecodeError, with: :render_bad_request
   rescue_from ActiveRecord::StaleObjectError, with: :render_conflict
+  rescue_from ActiveRecord::ConnectionTimeoutError, with: :render_pool_exhausted
 
   private
 
@@ -42,6 +43,19 @@ class ApplicationController < ActionController::API
     render_error(
       message: "This record was updated by someone else since you last loaded it. Reload and try again.",
       status: :conflict
+    )
+  end
+
+  # Raised when every connection in the pool (config/database.yml) is
+  # checked out and none frees up within checkout_timeout - the app is
+  # genuinely overloaded relative to its current pool/thread sizing, not a
+  # bug in a specific request. Worth a distinct response so a client (or a
+  # load balancer) can tell "temporarily out of capacity, retry" apart
+  # from a real server error, instead of surfacing a generic 500.
+  def render_pool_exhausted(_exception)
+    render_error(
+      message: "The server is temporarily overloaded. Please try again shortly.",
+      status: :service_unavailable
     )
   end
 end
