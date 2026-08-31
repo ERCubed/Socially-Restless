@@ -250,6 +250,28 @@ brute-force/credential-stuffing/spam-signup targets.
 
 ## Optional requirements
 
+**Observability & Error Handling — fully completed**, both requirements:
+
+- **Health check endpoint with detailed subsystem status.** `GET /health` (distinct from
+  Rails' own lightweight `/up`, kept dependency-free on purpose for platform-level checks)
+  reports on each real dependency individually — database, cache, rate limiter — with
+  per-subsystem latency, rather than a single up/down bit. It distinguishes a critical
+  dependency (the database — `503` if down) from soft ones (Redis-backed cache/rate
+  limiting — `degraded` but still `200`, matching how the app is actually built to behave
+  without them). It also reports `latest_commit` (from `GIT_COMMIT` in production, or
+  `.git/HEAD` in dev/CI) so you can confirm which build is actually running.
+- **Graceful degradation when Redis is unavailable.** Verified end-to-end with Redis
+  genuinely stopped (not just killed for a moment — the first attempt looked convincing
+  but turned out to be invalid: Redis on the dev machine runs as a `brew services`-managed
+  daemon that silently respawns within a second of being killed, so it was never actually
+  down for that first test; caught by insisting on confirming `redis-cli ping` failed
+  throughout, not just that the app kept responding). With it genuinely down for the
+  duration: `GET /api/v1/timeline` still returns real data (uncached, straight from
+  Postgres), rate limiting fails open rather than 500ing or blocking requests, and
+  registration/login/posts/ratings are entirely unaffected since they never depended on
+  Redis to begin with. Caching and rate limiting both resume cleanly the moment Redis
+  comes back, with no restart needed.
+
 ## Testing
 
 - `bundle exec rspec` — full suite, request specs for every endpoint plus model specs
