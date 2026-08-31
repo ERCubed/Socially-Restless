@@ -14,6 +14,7 @@ Rails.application.routes.draw do
       resources :posts, only: [ :show, :create, :destroy ] do
         resource :rating, only: [ :create ]
       end
+      get "timeline", to: "timeline#index"
     end
   end
 
