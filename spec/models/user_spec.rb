@@ -77,14 +77,16 @@ RSpec.describe User, type: :model do
 
   describe "password hashing" do
     it "hashes the password into password_digest and never stores it in plain text" do
+      raw_password = user.password
       user.save!
       expect(user.password_digest).to be_present
-      expect(user.password_digest).not_to eq("password123")
+      expect(user.password_digest).not_to eq(raw_password)
     end
 
     it "authenticates with the correct password" do
+      raw_password = user.password
       user.save!
-      expect(user.authenticate("password123")).to eq(user)
+      expect(user.authenticate(raw_password)).to eq(user)
     end
 
     it "does not authenticate with an incorrect password" do
