@@ -45,4 +45,7 @@ group :development, :test do
   gem "factory_bot_rails"
   gem "faker"
   gem "shoulda-matchers"
+
+  # Test coverage reporting - enforces the minimum coverage bar in spec_helper.rb
+  gem "simplecov", require: false
 end
