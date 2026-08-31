@@ -45,6 +45,8 @@ paths:
                         type: string
                       updated_at:
                         type: string
+                      lock_version:
+                        type: integer
                     required:
                     - id
                     - title
@@ -59,15 +61,16 @@ paths:
                 - post
               example:
                 post:
-                  id: 12204
+                  id: 807
                   title: Hello
                   body: Body
-                  user_id: 16066
+                  user_id: 1096
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T18:56:41.009Z'
-                  updated_at: '2026-08-31T18:56:41.009Z'
+                  created_at: '2026-08-31T19:23:22.353Z'
+                  updated_at: '2026-08-31T19:23:22.353Z'
+                  lock_version: 0
         '401':
           description: requires authentication
           content:
@@ -124,7 +127,7 @@ paths:
         required: true
         schema:
           type: string
-        example: Bearer 52120a11adf37f16a77e2ea136c9044198dc0a013fce666fa4e048cfb66b01b7
+        example: Bearer de1d22241c46f908d3c6e060f38206e3d63439d99da123778e1b361f9a01df63
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -149,7 +152,7 @@ paths:
               post:
                 title: Hello
                 body: Body
-                user_id: '16065'
+                user_id: '1095'
   "/api/v1/posts/{id}":
     delete:
       summary: destroy
@@ -161,7 +164,7 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer 7245ec98cae00a0c4f921e3ab204345da943173f452ba9026f047ebe459a4ee6
+        example: Bearer 6072fc8576174f1284946319039ae7222f01b346216706f40c26bbd5257e8e04
       - name: id
         in: path
         required: true
@@ -229,13 +232,13 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer b0df1479a582b7dae69a59a51bf04344b0eb378b2a5b58a5c69698b40a26ce38
+        example: Bearer 37cc8e0a990e609120dad44faad74bb37105e226afeb2aa15d26bc9f8e2e8d46
       - name: id
         in: path
         required: true
         schema:
           type: integer
-        example: 12202
+        example: 805
       responses:
         '200':
           description: does not increment view_count when the author views their own
@@ -267,6 +270,8 @@ paths:
                         type: string
                       updated_at:
                         type: string
+                      lock_version:
+                        type: integer
                     required:
                     - id
                     - title
@@ -281,16 +286,17 @@ paths:
                 - post
               example:
                 post:
-                  id: 12202
-                  title: Neque non qui nisi.
-                  body: Quam autem nam. Ducimus qui perferendis. Mollitia ratione
-                    cum.
-                  user_id: 16063
+                  id: 805
+                  title: Id modi quis qui.
+                  body: Blanditiis rerum repudiandae. Culpa alias iure. Quaerat soluta
+                    tenetur.
+                  user_id: 1093
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T18:56:40.985Z'
-                  updated_at: '2026-08-31T18:56:40.985Z'
+                  created_at: '2026-08-31T19:23:22.319Z'
+                  updated_at: '2026-08-31T19:23:22.319Z'
+                  lock_version: 0
         '404':
           description: 404s for a nonexistent post
           content:
@@ -315,6 +321,232 @@ paths:
                 error:
                   message: Post not found
                   details: []
+    patch:
+      summary: update
+      tags:
+      - Api::V1::Post
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+        example: Bearer 5d2f8a49c2639a260c04c03666af87e0d7bf27dd20a82e28ca9dfd24972b3588
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        example: 0
+      responses:
+        '200':
+          description: ignores a client-supplied user_id
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  post:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      title:
+                        type: string
+                      body:
+                        type: string
+                      user_id:
+                        type: integer
+                      view_count:
+                        type: integer
+                      average_rating:
+                        type: number
+                        format: float
+                      ratings_count:
+                        type: integer
+                      lock_version:
+                        type: integer
+                      created_at:
+                        type: string
+                      updated_at:
+                        type: string
+                    required:
+                    - id
+                    - title
+                    - body
+                    - user_id
+                    - view_count
+                    - average_rating
+                    - ratings_count
+                    - lock_version
+                    - created_at
+                    - updated_at
+                required:
+                - post
+              example:
+                post:
+                  id: 812
+                  title: New
+                  body: Original body
+                  user_id: 1105
+                  view_count: 0
+                  average_rating: 0.0
+                  ratings_count: 0
+                  lock_version: 1
+                  created_at: '2026-08-31T19:23:22.442Z'
+                  updated_at: '2026-08-31T19:23:22.446Z'
+        '400':
+          description: requires lock_version to be present
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      details:
+                        type: array
+                        items: {}
+                    required:
+                    - message
+                    - details
+                required:
+                - error
+              example:
+                error:
+                  message: 'param is missing or the value is empty or invalid: lock_version'
+                  details: []
+        '401':
+          description: requires authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      details:
+                        type: array
+                        items: {}
+                    required:
+                    - message
+                    - details
+                required:
+                - error
+              example:
+                error:
+                  message: Unauthorized
+                  details: []
+        '404':
+          description: 404s for a nonexistent post
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      details:
+                        type: array
+                        items: {}
+                    required:
+                    - message
+                    - details
+                required:
+                - error
+              example:
+                error:
+                  message: Post not found
+                  details: []
+        '409':
+          description: rejects a stale lock_version with 409, and does not apply the
+            update
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      details:
+                        type: array
+                        items: {}
+                    required:
+                    - message
+                    - details
+                required:
+                - error
+              example:
+                error:
+                  message: This record was updated by someone else since you last
+                    loaded it. Reload and try again.
+                  details: []
+        '422':
+          description: returns a validation error for a title over 100 characters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      details:
+                        type: array
+                        items:
+                          type: string
+                    required:
+                    - message
+                    - details
+                required:
+                - error
+              example:
+                error:
+                  message: Validation failed
+                  details:
+                  - Title is too long (maximum is 100 characters)
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                post:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    body:
+                      type: string
+                    lock_version:
+                      type: string
+                    user_id:
+                      type: string
+                  required:
+                  - title
+                  - lock_version
+              required:
+              - post
+            example:
+              post:
+                title: New
+                body: Updated body
+                lock_version: '0'
+                user_id: '1104'
   "/api/v1/posts/{post_id}/rating":
     post:
       summary: create
@@ -326,13 +558,13 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer d494989fbf5c8f4e5ab14dacc23f2ff2b5e7b564d42a3d39abf3030ffc1fd738
+        example: Bearer 58b9e83599ec9b52d72164c228bebfc0e4e6f41b95c0748a80bccdcc2333f3a3
       - name: post_id
         in: path
         required: true
         schema:
           type: integer
-        example: 12215
+        example: 826
       responses:
         '200':
           description: updates the existing rating in place on a second call, without
@@ -368,12 +600,12 @@ paths:
                 - rating
               example:
                 rating:
-                  id: 2257
-                  post_id: 12211
-                  user_id: 16089
+                  id: 150
+                  post_id: 822
+                  user_id: 1130
                   score: 5
-                  created_at: '2026-08-31T18:56:41.432Z'
-                  updated_at: '2026-08-31T18:56:41.438Z'
+                  created_at: '2026-08-31T19:23:22.889Z'
+                  updated_at: '2026-08-31T19:23:22.896Z'
         '201':
           description: lets different users rate the same post independently
           content:
@@ -407,12 +639,12 @@ paths:
                 - rating
               example:
                 rating:
-                  id: 2259
-                  post_id: 12212
-                  user_id: 16090
+                  id: 152
+                  post_id: 823
+                  user_id: 1131
                   score: 5
-                  created_at: '2026-08-31T18:56:41.464Z'
-                  updated_at: '2026-08-31T18:56:41.464Z'
+                  created_at: '2026-08-31T19:23:22.924Z'
+                  updated_at: '2026-08-31T19:23:22.924Z'
         '401':
           description: requires authentication
           content:
@@ -520,7 +752,7 @@ paths:
         required: true
         schema:
           type: string
-        example: Bearer d6c0aeba1997b1cca82fee2d23295f43eb302f6356e138959e902b2303e0ff34
+        example: Bearer cc2d6239aa7ab2f21d8c2001732a58a4f3413d1383ae6ba0ce7eab72b1b2ce13
     post:
       summary: create
       tags:
@@ -562,13 +794,13 @@ paths:
                 - token
               example:
                 user:
-                  id: 16101
-                  username: user146
-                  email: user146@example.com
-                  first_name: My
-                  last_name: Kassulke
-                  created_at: '2026-08-31T18:56:41.529Z'
-                token: 1394990f7dc75e93945774f3be2e246e15d2019a34b7f3b650497f1d86c21c40
+                  id: 1142
+                  username: user157
+                  email: user157@example.com
+                  first_name: Oswaldo
+                  last_name: Hintz
+                  created_at: '2026-08-31T19:23:22.995Z'
+                token: c11a53797f295c06c5becb28cab5a2dedbb59f5fa3c3841c0a12bd8ebb566f7e
         '401':
           description: rejects an unknown email
           content:
@@ -638,7 +870,7 @@ paths:
               - session
             example:
               session:
-                email: USER146@EXAMPLE.COM
+                email: USER157@EXAMPLE.COM
                 password: password123
   "/api/v1/timeline":
     get:
@@ -699,6 +931,8 @@ paths:
                           - first_name
                           - last_name
                           - created_at
+                        lock_version:
+                          type: integer
                       required:
                       - id
                       - title
@@ -730,39 +964,41 @@ paths:
                 - meta
               example:
                 posts:
-                - id: 12291
-                  title: Rem quis qui et.
-                  body: Magni incidunt et. Sunt magni molestiae. Facilis quis eligendi.
-                  user_id: 16187
+                - id: 902
+                  title: Deserunt error odit laudantium.
+                  body: Quidem labore facere. Blanditiis voluptatem qui. Qui mollitia
+                    voluptates.
+                  user_id: 1228
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T18:56:42.180Z'
-                  updated_at: '2026-08-31T18:56:42.180Z'
+                  lock_version: 0
+                  created_at: '2026-08-31T19:23:23.674Z'
+                  updated_at: '2026-08-31T19:23:23.674Z'
                   author:
-                    id: 16187
-                    username: user229
-                    email: user232@example.com
-                    first_name: Lionel
-                    last_name: Kerluke
-                    created_at: '2026-08-31T18:56:42.178Z'
-                - id: 12290
-                  title: Officia incidunt qui et.
-                  body: Rerum adipisci sint. Dolor iusto deserunt. Voluptatem ducimus
-                    in.
-                  user_id: 16186
+                    id: 1228
+                    username: user240
+                    email: user243@example.com
+                    first_name: Stuart
+                    last_name: Feil
+                    created_at: '2026-08-31T19:23:23.671Z'
+                - id: 901
+                  title: Ea pariatur sed non.
+                  body: Rerum ut cupiditate. Modi culpa sequi. Iure et ab.
+                  user_id: 1227
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T18:56:42.066Z'
-                  updated_at: '2026-08-31T18:56:42.066Z'
+                  lock_version: 0
+                  created_at: '2026-08-31T19:23:23.561Z'
+                  updated_at: '2026-08-31T19:23:23.561Z'
                   author:
-                    id: 16186
-                    username: user228
-                    email: user231@example.com
-                    first_name: Ena
-                    last_name: Fay
-                    created_at: '2026-08-31T18:56:42.065Z'
+                    id: 1227
+                    username: user239
+                    email: user242@example.com
+                    first_name: Vilma
+                    last_name: Bartoletti
+                    created_at: '2026-08-31T19:23:23.560Z'
                 meta:
                   per_page: 10
                   has_more: false
@@ -797,7 +1033,7 @@ paths:
         required: false
         schema:
           type: string
-        example: MjAyNi0wOC0zMVQxODo1Njo0MS45OTc2MzBafDEyMjg0
+        example: MjAyNi0wOC0zMVQxOToyMzoyMy40OTczODRafDg5NQ==
       - name: min_rating
         in: query
         required: false
@@ -858,13 +1094,13 @@ paths:
                 - token
               example:
                 user:
-                  id: 16201
+                  id: 1242
                   username: newuser
                   email: newuser@example.com
                   first_name:
                   last_name:
-                  created_at: '2026-08-31T18:56:42.372Z'
-                token: 1ae6241ecb6be5073d62c832fcaa6401296af2ff72324098c852834664ed8499
+                  created_at: '2026-08-31T19:23:23.875Z'
+                token: b6cd30b195b269b976fbb6a265c8ff663c0f4f889f6147ea134c944791ef42bc
         '422':
           description: rejects duplicate emails case-insensitively
           content:
@@ -962,7 +1198,7 @@ paths:
         required: false
         schema:
           type: string
-        example: Bearer aaa44b633fcb06bc34308df8a04d571a47dc95a86b8b0e15f6f383a2f310a7ba
+        example: Bearer f452e405651828ec1e3dd42ceedc7ab8e659b7ac7afc958879a46fbb4b16ad9a
       - name: page
         in: query
         required: false
@@ -1016,6 +1252,8 @@ paths:
                           type: string
                         updated_at:
                           type: string
+                        lock_version:
+                          type: integer
                       required:
                       - id
                       - title
@@ -1047,25 +1285,26 @@ paths:
                 - meta
               example:
                 posts:
-                - id: 12333
-                  title: Omnis alias dolor tempore.
-                  body: Molestias corporis soluta. Minus non odit. Assumenda eos qui.
-                  user_id: 16199
+                - id: 944
+                  title: Exercitationem hic facilis similique.
+                  body: Officia quos sed. Ut labore incidunt. Quidem quos vel.
+                  user_id: 1240
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T18:56:42.349Z'
-                  updated_at: '2026-08-31T18:56:42.349Z'
-                - id: 12332
-                  title: Quasi reprehenderit sint sint.
-                  body: Porro ratione et. Mollitia quia reprehenderit. Voluptatem
-                    perspiciatis deleniti.
-                  user_id: 16199
+                  lock_version: 0
+                  created_at: '2026-08-31T19:23:23.850Z'
+                  updated_at: '2026-08-31T19:23:23.850Z'
+                - id: 943
+                  title: Et ut laboriosam sequi.
+                  body: Aut laborum similique. Quia eos ipsa. Odit autem non.
+                  user_id: 1240
                   view_count: 0
                   average_rating: 0.0
                   ratings_count: 0
-                  created_at: '2026-08-31T18:56:42.347Z'
-                  updated_at: '2026-08-31T18:56:42.347Z'
+                  lock_version: 0
+                  created_at: '2026-08-31T19:23:23.846Z'
+                  updated_at: '2026-08-31T19:23:23.846Z'
                 meta:
                   page: 1
                   per_page: 10
@@ -1149,23 +1388,23 @@ paths:
                 - subsystems
               example:
                 status: ok
-                checked_at: '2026-08-31T18:56:42Z'
+                checked_at: '2026-08-31T19:23:23Z'
                 subsystems:
                   database:
                     status: ok
                     critical: true
-                    latency_ms: 0.12
+                    latency_ms: 0.52
                   cache:
                     status: ok
                     critical: false
-                    latency_ms: 0.11
+                    latency_ms: 0.16
                     error: Redis::CannotConnectError
                   rate_limiter:
                     status: ok
                     critical: false
-                    latency_ms: 0.09
+                    latency_ms: 0.28
                     error: Redis::CannotConnectError
-                latest_commit: fd9e7d5190
+                latest_commit: f9a830c2a7
         '503':
           description: returns 503 and status unavailable when the database is unreachable
           content:
@@ -1233,7 +1472,7 @@ paths:
                 - subsystems
               example:
                 status: unavailable
-                checked_at: '2026-08-31T18:56:42Z'
+                checked_at: '2026-08-31T19:23:23Z'
                 subsystems:
                   database:
                     status: error
@@ -1242,12 +1481,12 @@ paths:
                   cache:
                     status: ok
                     critical: false
-                    latency_ms: 0.13
+                    latency_ms: 0.25
                   rate_limiter:
                     status: ok
                     critical: false
-                    latency_ms: 0.15
-                latest_commit: fd9e7d5190
+                    latency_ms: 0.11
+                latest_commit: f9a830c2a7
   "/up":
     get:
       summary: show

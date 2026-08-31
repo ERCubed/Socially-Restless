@@ -3,6 +3,7 @@ class ApplicationController < ActionController::API
   rescue_from ActiveRecord::RecordInvalid, with: :render_unprocessable_entity
   rescue_from ActionController::ParameterMissing, with: :render_bad_request
   rescue_from Cursor::DecodeError, with: :render_bad_request
+  rescue_from ActiveRecord::StaleObjectError, with: :render_conflict
 
   private
 
@@ -30,5 +31,17 @@ class ApplicationController < ActionController::API
 
   def render_bad_request(exception)
     render_error(message: exception.message, status: :bad_request)
+  end
+
+  # Raised by ActiveRecord::Locking::Optimistic when a record's lock_version
+  # column doesn't match what's in the DB anymore - someone else updated it
+  # since the client last read it. Generic, not tied to Post specifically:
+  # any model that gains a lock_version column in the future is covered by
+  # this automatically.
+  def render_conflict(_exception)
+    render_error(
+      message: "This record was updated by someone else since you last loaded it. Reload and try again.",
+      status: :conflict
+    )
   end
 end

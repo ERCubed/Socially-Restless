@@ -15,7 +15,7 @@ Rails.application.routes.draw do
         resources :posts, only: [ :index ], controller: "users/posts"
       end
       resource :session, only: [ :create, :destroy ]
-      resources :posts, only: [ :show, :create, :destroy ] do
+      resources :posts, only: [ :show, :create, :update, :destroy ] do
         resource :rating, only: [ :create ]
       end
       get "timeline", to: "timeline#index"
