@@ -65,9 +65,16 @@ coverage report is written to `coverage/index.html`.
 ### Seed data
 
 `bin/rails db:seed` creates 5 users (`alice`, `bob`, `carol`, `dave`, `erin`), a spread of
-posts per user (one deliberately soft-deleted), and a deterministic set of cross-ratings
-so `average_rating`/`ratings_count` show real variety out of the box. It's idempotent —
-safe to run repeatedly against the same database without creating duplicates.
+generic posts per user (one deliberately soft-deleted), and a deterministic set of
+cross-ratings so `average_rating`/`ratings_count` show real variety out of the box. It's
+idempotent — safe to run repeatedly against the same database without creating
+duplicates.
+
+It also seeds 8 posts with real, topical titles/bodies and `metadata` tags (not generic
+Faker text) — full-text search and JSONB metadata queries have nothing meaningful to
+return against filler text, so `GET /api/v1/posts/search?q=rails` (or `postgres`,
+`redis`, `sidekiq`, `hiking`, `sourdough`, `photography`, `remote`) and
+`Post.with_metadata("tags" => [ "postgres" ])` both return real results out of the box.
 
 Every seeded user shares the password `password123`, so you can log in as any of them
 immediately:
