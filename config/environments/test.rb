@@ -31,6 +31,11 @@ Rails.application.configure do
   # Disable request forgery protection in test environment.
   config.action_controller.allow_forgery_protection = false
 
+  # Off by default so an ordinary request-spec run doesn't trip its own
+  # throttles and fail unrelated tests. The rate limiting spec explicitly
+  # re-enables it (and resets counters) around the examples that need it.
+  Rack::Attack.enabled = false
+
   # Print deprecation notices to the stderr.
   config.active_support.deprecation = :stderr
 
