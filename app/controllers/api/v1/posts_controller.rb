@@ -1,7 +1,22 @@
 module Api
   module V1
     class PostsController < BaseController
-      before_action :authenticate_user!
+      include Paginatable
+
+      before_action :authenticate_user!, only: [ :create, :destroy ]
+
+      # GET /api/v1/posts?cursor=...&per_page=10
+      def index
+        posts, meta = paginate_by_cursor(Post.kept)
+
+        render json: { posts: posts.map { |post| PostSerializer.new(post).as_json }, meta: meta }, status: :ok
+      end
+
+      # GET /api/v1/posts/:id
+      def show
+        post = Post.kept.find(params[:id])
+        render json: { post: PostSerializer.new(post).as_json }, status: :ok
+      end
 
       # POST /api/v1/posts
       def create

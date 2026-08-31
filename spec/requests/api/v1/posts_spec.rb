@@ -5,6 +5,138 @@ RSpec.describe "Api::V1::Posts", type: :request do
   let(:session) { Session.start!(user: user) }
   let(:auth_headers) { { "Authorization" => "Bearer #{session.token}" } }
 
+  describe "GET /api/v1/posts" do
+    it "does not require authentication" do
+      get "/api/v1/posts"
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "defaults to 10 posts per page" do
+      create_list(:post, 15)
+
+      get "/api/v1/posts"
+
+      body = response.parsed_body
+      expect(body["posts"].size).to eq(10)
+      expect(body["meta"]["per_page"]).to eq(10)
+      expect(body["meta"]["has_more"]).to eq(true)
+      expect(body["meta"]["next_cursor"]).to be_present
+    end
+
+    it "accepts a per_page override" do
+      create_list(:post, 15)
+
+      get "/api/v1/posts", params: { per_page: 5 }
+
+      body = response.parsed_body
+      expect(body["posts"].size).to eq(5)
+      expect(body["meta"]["per_page"]).to eq(5)
+    end
+
+    it "caps per_page at 100 to prevent an unbounded query" do
+      get "/api/v1/posts", params: { per_page: 10_000 }
+
+      expect(response.parsed_body["meta"]["per_page"]).to eq(100)
+    end
+
+    it "walks the full result set via next_cursor with no gaps or duplicates" do
+      posts = create_list(:post, 25)
+      posts.each_with_index { |p, i| p.update_column(:created_at, i.hours.ago) }
+      newest_to_oldest_ids = posts.sort_by(&:created_at).reverse.map(&:id)
+
+      seen_ids = []
+      cursor = nil
+
+      loop do
+        get "/api/v1/posts", params: { per_page: 10, cursor: cursor }.compact
+        body = response.parsed_body
+        seen_ids.concat(body["posts"].map { |p| p["id"] })
+        cursor = body["meta"]["next_cursor"]
+        break unless body["meta"]["has_more"]
+      end
+
+      expect(seen_ids).to eq(newest_to_oldest_ids)
+    end
+
+    it "reports has_more: false and a nil next_cursor on the last page" do
+      create_list(:post, 3)
+
+      get "/api/v1/posts", params: { per_page: 10 }
+
+      body = response.parsed_body
+      expect(body["meta"]["has_more"]).to eq(false)
+      expect(body["meta"]["next_cursor"]).to be_nil
+    end
+
+    it "still paginates correctly when posts share the same created_at, using id as a tiebreaker" do
+      same_time = Time.current
+      posts = create_list(:post, 12)
+      posts.each { |p| p.update_column(:created_at, same_time) }
+      newest_to_oldest_ids = posts.sort_by(&:id).reverse.map(&:id)
+
+      get "/api/v1/posts", params: { per_page: 10 }
+      first_page_ids = response.parsed_body["posts"].map { |p| p["id"] }
+      cursor = response.parsed_body["meta"]["next_cursor"]
+
+      get "/api/v1/posts", params: { per_page: 10, cursor: cursor }
+      second_page_ids = response.parsed_body["posts"].map { |p| p["id"] }
+
+      expect(first_page_ids + second_page_ids).to eq(newest_to_oldest_ids)
+    end
+
+    it "ignores a garbage per_page value rather than erroring" do
+      get "/api/v1/posts", params: { per_page: "-5" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["meta"]["per_page"]).to eq(10)
+    end
+
+    it "returns a 400 for a malformed cursor instead of silently restarting" do
+      get "/api/v1/posts", params: { cursor: "not-a-real-cursor" }
+
+      expect(response).to have_http_status(:bad_request)
+      expect(response.parsed_body["error"]["message"]).to eq("invalid pagination cursor")
+    end
+
+    it "excludes soft-deleted posts" do
+      kept = create(:post)
+      deleted = create(:post, deleted_at: Time.current)
+
+      get "/api/v1/posts"
+
+      ids = response.parsed_body["posts"].map { |p| p["id"] }
+      expect(ids).to include(kept.id)
+      expect(ids).not_to include(deleted.id)
+    end
+  end
+
+  describe "GET /api/v1/posts/:id" do
+    it "does not require authentication" do
+      post_record = create(:post)
+
+      get "/api/v1/posts/#{post_record.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["post"]["id"]).to eq(post_record.id)
+    end
+
+    it "404s for a soft-deleted post, without leaking query internals" do
+      post_record = create(:post, deleted_at: Time.current)
+
+      get "/api/v1/posts/#{post_record.id}"
+
+      expect(response).to have_http_status(:not_found)
+      expect(response.parsed_body["error"]["message"]).to eq("Post not found")
+    end
+
+    it "404s for a nonexistent post" do
+      get "/api/v1/posts/0"
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
   describe "POST /api/v1/posts" do
     let(:valid_params) { { post: { title: "Hello world", body: "This is my first post." } } }
 
