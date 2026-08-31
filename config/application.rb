@@ -49,5 +49,9 @@ module SociallyRestless
     config.time_zone = "UTC"
     config.active_record.default_timezone = :utc
     config.active_record.time_zone_aware_attributes = true
+
+    # See config/initializers/sidekiq.rb for the Redis connection this
+    # queues into.
+    config.active_job.queue_adapter = :sidekiq
   end
 end

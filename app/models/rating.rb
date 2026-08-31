@@ -10,6 +10,14 @@ class Rating < ApplicationRecord
   # not after it, so the two stay atomic with each other.
   after_save :update_post_rating_stats
 
+  # The opposite choice from above, deliberately: after_commit, not
+  # after_save. A notification should only ever fire for a rating that's
+  # definitely, permanently saved - enqueueing inside the transaction
+  # would mean a job goes out even if something later in that same
+  # transaction rolled it back, notifying about a rating that never
+  # actually happened.
+  after_commit :enqueue_rating_notification, on: [ :create, :update ]
+
   # Creates or updates (find_or_create) a user's rating of a post, and
   # keeps that post's cached stats in sync with it, as a single atomic
   # unit: either the rating write and the stats recalculation both commit,
@@ -42,5 +50,9 @@ class Rating < ApplicationRecord
 
   def update_post_rating_stats
     post.recalculate_rating_stats!
+  end
+
+  def enqueue_rating_notification
+    RatingNotificationJob.perform_later(id)
   end
 end

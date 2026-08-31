@@ -57,41 +57,39 @@ RSpec.describe Post, type: :model do
   end
 
   describe ".record_views!" do
-    it "increments view_count for each given post by 1" do
+    it "increments the in-memory view_count for each given post by 1" do
       posts = create_list(:post, 2, view_count: 3)
 
       Post.record_views!(posts)
 
-      posts.each { |p| expect(p.reload.view_count).to eq(4) }
+      posts.each { |p| expect(p.view_count).to eq(4) }
     end
 
-    it "keeps the in-memory objects in sync with the DB write, without reloading" do
-      post.save!
-      post.view_count = 3
-      post.save!
-
-      Post.record_views!([ post ])
-
-      expect(post.view_count).to eq(4)
-      expect(post.reload.view_count).to eq(4)
-    end
-
-    it "does nothing for an empty list" do
-      expect { Post.record_views!([]) }.not_to raise_error
-    end
-
-    it "increments via a single atomic UPDATE, not a read-modify-write" do
+    it "does not write to Postgres directly - it defers to ViewCounts/FlushViewCountsJob" do
       post.save!
 
       update_queries = []
-      subscriber = ->(*, payload) { update_queries << payload[:sql] if payload[:sql].match?(/\AUPDATE/i) }
+      subscriber = ->(*, payload) { update_queries << payload[:sql] if payload[:sql].match?(/\AUPDATE "posts"/i) }
 
       ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
         Post.record_views!([ post ])
       end
 
-      expect(update_queries.size).to eq(1)
-      expect(update_queries.first).to match(/view_count = view_count \+/i)
+      expect(update_queries).to be_empty
+      expect(post.reload.view_count).to eq(0) # unchanged until a flush happens
+    end
+
+    it "records the view in ViewCounts, which a flush later applies to Postgres" do
+      post.save!
+
+      Post.record_views!([ post ])
+      FlushViewCountsJob.perform_now
+
+      expect(post.reload.view_count).to eq(1)
+    end
+
+    it "does nothing for an empty list" do
+      expect { Post.record_views!([]) }.not_to raise_error
     end
   end
 

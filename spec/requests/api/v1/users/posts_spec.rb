@@ -84,8 +84,10 @@ RSpec.describe "Api::V1::Users::Posts", type: :request do
 
       get "/api/v1/users/#{user.username}/posts"
 
+      # Response reflects the views immediately; the column catches up via
+      # FlushViewCountsJob (see ViewCounts/Post.record_views!).
       expect(response.parsed_body["posts"].map { |p| p["view_count"] }).to all(eq(1))
-      posts.each { |p| expect(p.reload.view_count).to eq(1) }
+      expect(ViewCounts.flush!.keys).to match_array(posts.map(&:id))
     end
 
     it "increments view_count when the viewer is not the profile's own user" do
@@ -95,7 +97,7 @@ RSpec.describe "Api::V1::Users::Posts", type: :request do
       get "/api/v1/users/#{user.username}/posts", headers: { "Authorization" => "Bearer #{viewer_session.token}" }
 
       expect(response.parsed_body["posts"].map { |p| p["view_count"] }).to all(eq(1))
-      posts.each { |p| expect(p.reload.view_count).to eq(1) }
+      expect(ViewCounts.flush!.keys).to match_array(posts.map(&:id))
     end
 
     it "does not increment view_count when the profile's own user is viewing" do

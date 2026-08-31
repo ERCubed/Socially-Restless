@@ -35,8 +35,12 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
       get "/api/v1/posts/#{post_record.id}"
 
+      # The response reflects the view that just happened; the column
+      # itself only catches up once FlushViewCountsJob runs (see
+      # ViewCounts/Post.record_views!), so it's deliberately not asserted
+      # here via post_record.reload.
       expect(response.parsed_body["post"]["view_count"]).to eq(6)
-      expect(post_record.reload.view_count).to eq(6)
+      expect(ViewCounts.flush!).to eq(post_record.id => 1)
     end
 
     it "increments view_count for a viewer who is not the author" do

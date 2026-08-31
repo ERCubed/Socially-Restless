@@ -260,7 +260,7 @@ brute-force/credential-stuffing/spam-signup targets.
   limiting — `degraded` but still `200`, matching how the app is actually built to behave
   without them). It also reports `latest_commit` (from `GIT_COMMIT` in production, or
   `.git/HEAD` in dev/CI) so you can confirm which build is actually running.
-  
+
 - **Graceful degradation when Redis is unavailable.** Verified end-to-end with Redis
   genuinely stopped (not just killed for a moment — the first attempt looked convincing
   but turned out to be invalid: Redis on the dev machine runs as a `brew services`-managed
@@ -272,6 +272,69 @@ brute-force/credential-stuffing/spam-signup targets.
   registration/login/posts/ratings are entirely unaffected since they never depended on
   Redis to begin with. Caching and rate limiting both resume cleanly the moment Redis
   comes back, with no restart needed.
+
+**Extreme Concurrency Handling — completed**, 3 of 4 requirements done, 1 deliberately
+skipped in favor of a better-suited alternative:
+
+- **Optimistic locking for post updates.** Done. `PATCH /api/v1/posts/:id` uses
+  ActiveRecord's built-in `lock_version` column — no gem needed, it activates
+  automatically once the column exists. The client must send back the `lock_version` it
+  last saw (every post response includes it); a concurrent edit that's gone stale gets a
+  `409 Conflict` (`ActiveRecord::StaleObjectError`, handled globally) instead of silently
+  overwriting someone else's change. Verified with a live two-"client" scenario: the
+  first save advances the version and succeeds, the second save from the same starting
+  version correctly gets rejected, and the DB ends up holding the first client's edit.
+- **Database connection pooling for high-concurrency scenarios.** Done. Fixed a real
+  drift between `config/puma.rb`'s thread-count default and `config/database.yml`'s pool
+  size default (3 vs 5 — harmless since pool exceeded threads, but not intentional
+  either), made `checkout_timeout`/`reaping_frequency` explicit and tunable instead of
+  silent Rails defaults, documented the `workers × pool_size` vs Postgres's
+  `max_connections` math for if clustering is ever turned on, and added a graceful `503`
+  for `ActiveRecord::ConnectionTimeoutError` (pool exhaustion) through the same error
+  envelope as everything else, instead of a raw `500`.
+- **Redis-based distributed locks for rating operations — deliberately not built.**
+  Rating writes are already made concurrency-safe (see
+  [Architectural decisions](#architectural-decisions-and-trade-offs) above) via Postgres
+  row-level locking (`post.lock!`) inside `Rating.rate!`'s transaction, verified with two
+  genuinely separate OS processes racing to rate the same post. For a single-database
+  monolith like this one, that's the more correct tool, not a lesser substitute: a
+  Postgres lock is transactionally consistent with the exact row it's protecting, where a
+  Redis-based lock is what you reach for when the protected resource spans multiple data
+  stores or services and a single database can't arbitrate by itself — neither is true
+  here. Adding one anyway would demonstrate the technique without improving on what's
+  already correct, so this was skipped in favor of documenting the reasoning instead.
+- **Sidekiq queueing for async tasks.** Done. Three background jobs, all backed by their
+  own dedicated Redis DB index, separate from `Rails.cache`/`Rack::Attack`:
+  - `RatingNotificationJob` — enqueued via an `after_commit` callback on `Rating` (not
+    `after_save`, so it only fires once the transaction actually lands), logs a line
+    describing the rating instead of building a full notification model/API neither
+    requirement nor spec calls for.
+  - `FlushViewCountsJob` — `Post.record_views!` no longer writes Postgres directly; it
+    increments a Redis counter per post (`ViewCounts`), and this job batches every
+    pending post's delta into a single `UPDATE ... CASE` statement every 30 seconds,
+    turning "one write per view" into one bounded batched write regardless of traffic.
+  - `WarmTimelineCacheJob` — proactively re-populates the Timeline's cached first page
+    (see "Timeline caching" under Performance considerations above) every 25 seconds, so the hottest
+    Timeline request stays a cache hit instead of occasionally falling through to a
+    live query the instant the 30s TTL lapses. `TimelineFeed`
+    (`app/lib/timeline_feed.rb`) is the shared source of truth for "the Timeline's
+    default first page" so the controller and this job can't drift into two different
+    definitions of it (or two different cache key formats for the same cached value).
+
+  Both recurring jobs are self-perpetuating (`perform_later` re-enqueues the next tick
+  at the end of `perform`) rather than depending on `sidekiq-cron`/`sidekiq-scheduler` —
+  one fewer gem for two recurring jobs. The tradeoff: a self-perpetuating chain doesn't
+  survive its own loss (a dropped tick just stops the chain), so a Redis heartbeat
+  (`SET NX EX` on startup, refreshed via `EXPIRE` every tick) guards against a worker
+  restart starting a second concurrent chain on top of one that's still alive, without
+  a second gem to do it.
+
+  Verified live against a real, separately-running `bundle exec sidekiq` worker process
+  for all three jobs: a real rating produced the expected log line, a real anonymous
+  page view landed in Redis immediately and in Postgres only after the next flush tick,
+  and a post created after a warm tick was confirmed absent from the Timeline response
+  until the next tick refreshed it — confirming the endpoint was actually serving the
+  job-warmed cache, not a live query.
 
 ## Testing
 

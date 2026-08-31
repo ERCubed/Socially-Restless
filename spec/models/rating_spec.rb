@@ -77,6 +77,24 @@ RSpec.describe Rating, type: :model do
     end
   end
 
+  describe "notifications" do
+    it "enqueues RatingNotificationJob after a successful create" do
+      expect { rating.update!(score: 4) }.to have_enqueued_job(RatingNotificationJob).with(rating.id)
+    end
+
+    it "enqueues again when the rating is changed" do
+      rating.update!(score: 4)
+
+      expect { rating.update!(score: 5) }.to have_enqueued_job(RatingNotificationJob).with(rating.id)
+    end
+
+    it "does not enqueue anything when the update is invalid and never actually saves" do
+      expect {
+        expect(rating.update(score: 99)).to be false
+      }.not_to have_enqueued_job(RatingNotificationJob)
+    end
+  end
+
   describe ".rate!" do
     it "creates a new rating when the user hasn't rated this post before" do
       result = nil
