@@ -5,6 +5,8 @@ class Post < ApplicationRecord
   validates :title, presence: true, length: { maximum: 100 }
   validates :body, presence: true, length: { maximum: 1000 }
   validates :view_count, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :ratings_count, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :average_rating, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 5 }
 
   # No default_scope: soft-deleted posts should stay reachable on purpose
   # (e.g. an author viewing their own deleted posts, or an admin audit),
@@ -47,5 +49,27 @@ class Post < ApplicationRecord
 
     where(id: ids).update_all("view_count = view_count + 1")
     posts.each { |post| post.view_count += 1 }
+  end
+
+  # Recomputes ratings_count/average_rating from the ratings table and
+  # caches them on the post row, so reading a post (or many, for the
+  # future Timeline) never has to run a live aggregate query - it costs
+  # one COUNT+AVG here, on the rare write path (a user rates/re-rates a
+  # post), instead of on every read.
+  #
+  # update_columns (not update!/save): this is derived, system-computed
+  # data, not user input, so it skips validations/callbacks and writes
+  # directly - the same reasoning as record_views! above. Called from
+  # Rating's after_save callback, which runs inside the same implicit
+  # transaction Rails already wraps every save in, so a rating and its
+  # post's updated stats are already committed or rolled back together.
+  # Making that transactional intent explicit - and adding row locking so
+  # two concurrent ratings on the same post can't race each other's
+  # recalculation - is the next piece of hardening, not this one.
+  def recalculate_rating_stats!
+    count = ratings.count
+    average = count.zero? ? 0 : ratings.average(:score)
+
+    update_columns(ratings_count: count, average_rating: average.to_d.round(2))
   end
 end

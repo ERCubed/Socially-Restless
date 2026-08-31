@@ -56,6 +56,27 @@ RSpec.describe Rating, type: :model do
     end
   end
 
+  describe "cached post rating stats" do
+    it "updates the post's cached stats on create" do
+      rating.update!(score: 4)
+
+      expect(post_record.reload.ratings_count).to eq(1)
+      expect(post_record.reload.average_rating).to eq(4)
+    end
+
+    it "recomputes the post's cached stats when a rating is changed" do
+      rating.update!(score: 4)
+      other_rating = create(:rating, post: post_record, score: 2)
+
+      expect(post_record.reload.average_rating).to eq(3) # (4 + 2) / 2
+
+      other_rating.update!(score: 4)
+
+      expect(post_record.reload.ratings_count).to eq(2)
+      expect(post_record.reload.average_rating).to eq(4) # (4 + 4) / 2, not 5
+    end
+  end
+
   describe "database constraints" do
     it "rejects a score outside 1..5 at the database level, even bypassing model validations" do
       rating.save!

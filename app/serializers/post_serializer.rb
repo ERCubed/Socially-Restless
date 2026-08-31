@@ -10,6 +10,8 @@ class PostSerializer
       body: post.body,
       user_id: post.user_id,
       view_count: post.view_count,
+      average_rating: post.average_rating.to_f,
+      ratings_count: post.ratings_count,
       created_at: post.created_at,
       updated_at: post.updated_at
     }
