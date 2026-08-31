@@ -23,13 +23,36 @@ module Api
       # doesn't obviously belong in the same "view" definition - flagging
       # this as a deliberate choice, not an oversight, in case that's not
       # what's wanted.
+      #
+      # ?min_rating=4 filters to posts with average_rating >= 4. There's
+      # no index covering average_rating, so at 1M+ rows this filter adds
+      # a per-row check Postgres can't skip via an index the way the
+      # deleted_at/created_at/id keyset condition can - same category of
+      # cost as the "shallow cursor page" planner behavior documented on
+      # Paginatable#paginate_by_cursor, just triggered by a different
+      # condition. Not worth a dedicated index for a filter that doesn't
+      # exist as a real access pattern yet; worth revisiting (a composite
+      # index, or a precomputed "highly-rated" view) if it turns out to be
+      # a heavily-used one.
       def index
-        posts, meta = paginate_by_cursor(Post.kept.includes(:user))
+        scope = Post.kept.includes(:user)
+        scope = scope.where("average_rating >= ?", min_rating) if min_rating
+
+        posts, meta = paginate_by_cursor(scope)
 
         render json: {
           posts: posts.map { |post| PostSerializer.new(post, include_author: true).as_json },
           meta: meta
         }, status: :ok
+      end
+
+      private
+
+      # Blank/missing/non-numeric all mean "no filter", same graceful
+      # handling as page/per_page elsewhere - a garbage value degrades to
+      # "show everything" rather than erroring.
+      def min_rating
+        params[:min_rating].presence&.to_f
       end
     end
   end

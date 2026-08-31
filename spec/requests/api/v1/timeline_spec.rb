@@ -100,6 +100,48 @@ RSpec.describe "Api::V1::Timeline", type: :request do
       expect(response).to have_http_status(:bad_request)
     end
 
+    it "filters to posts at or above the given minimum average rating" do
+      low = create(:post)
+      create(:rating, post: low, score: 2)
+      high = create(:post)
+      create(:rating, post: high, score: 5)
+
+      get "/api/v1/timeline", params: { min_rating: 4 }
+
+      ids = response.parsed_body["posts"].map { |p| p["id"] }
+      expect(ids).to eq([ high.id ])
+    end
+
+    it "treats the minimum as inclusive" do
+      post_record = create(:post)
+      create(:rating, post: post_record, score: 4)
+
+      get "/api/v1/timeline", params: { min_rating: 4 }
+
+      expect(response.parsed_body["posts"].map { |p| p["id"] }).to eq([ post_record.id ])
+    end
+
+    it "includes unrated posts (average_rating 0) when there's no filter, but excludes them from a positive min_rating" do
+      unrated = create(:post)
+      rated = create(:post)
+      create(:rating, post: rated, score: 3)
+
+      get "/api/v1/timeline", params: { min_rating: 1 }
+
+      ids = response.parsed_body["posts"].map { |p| p["id"] }
+      expect(ids).to eq([ rated.id ])
+      expect(ids).not_to include(unrated.id)
+    end
+
+    it "ignores a blank or garbage min_rating rather than erroring" do
+      post_record = create(:post)
+
+      get "/api/v1/timeline", params: { min_rating: "not-a-number" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["posts"].map { |p| p["id"] }).to eq([ post_record.id ])
+    end
+
     it "eager loads authors, so the query count doesn't grow with the number of distinct posters" do
       create_list(:post, 10) # 10 distinct authors, via the factory's default association
 
