@@ -155,5 +155,80 @@ RSpec.describe "Api::V1::Timeline", type: :request do
       # One query for posts, one for the preloaded users - not one-per-post.
       expect(queries.size).to eq(2)
     end
+
+    describe "caching" do
+      def select_query_count
+        queries = []
+        subscriber = ->(*, payload) { queries << payload[:sql] if payload[:sql].match?(/\ASELECT/i) }
+        ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") { yield }
+        queries.size
+      end
+
+      it "serves the second identical (no-cursor) request from cache, without re-querying" do
+        create(:post)
+        get "/api/v1/timeline"
+        expect(select_query_count { get "/api/v1/timeline" }).to eq(0)
+      end
+
+      it "returns the cached response body, not just skipping the query" do
+        post_record = create(:post)
+        get "/api/v1/timeline"
+        first_body = response.parsed_body
+
+        create(:post) # would appear in a fresh, uncached query
+
+        get "/api/v1/timeline"
+        expect(response.parsed_body).to eq(first_body)
+        expect(response.parsed_body["posts"].map { |p| p["id"] }).to eq([ post_record.id ])
+      end
+
+      it "never caches a request that includes a cursor" do
+        create_list(:post, 3)
+        first = get_json("/api/v1/timeline", per_page: 1)
+        cursor = first["meta"]["next_cursor"]
+
+        expect(select_query_count { get "/api/v1/timeline", params: { per_page: 1, cursor: cursor } }).to be > 0
+        expect(select_query_count { get "/api/v1/timeline", params: { per_page: 1, cursor: cursor } }).to be > 0
+      end
+
+      it "keeps distinct cache entries per per_page" do
+        create_list(:post, 3)
+        get "/api/v1/timeline", params: { per_page: 1 }
+        expect(response.parsed_body["posts"].size).to eq(1)
+
+        expect(select_query_count { get "/api/v1/timeline", params: { per_page: 2 } }).to be > 0
+        expect(response.parsed_body["posts"].size).to eq(2)
+      end
+
+      it "keeps distinct cache entries per min_rating" do
+        low = create(:post)
+        create(:rating, post: low, score: 2)
+        high = create(:post)
+        create(:rating, post: high, score: 5)
+
+        get "/api/v1/timeline"
+        expect(response.parsed_body["posts"].size).to eq(2)
+
+        expect(select_query_count { get "/api/v1/timeline", params: { min_rating: 4 } }).to be > 0
+        expect(response.parsed_body["posts"].map { |p| p["id"] }).to eq([ high.id ])
+      end
+
+      it "re-queries once the cache entry actually expires in Redis" do
+        stub_const("Api::V1::TimelineController::CACHE_EXPIRY", 0.05.seconds)
+        create(:post)
+        get "/api/v1/timeline"
+
+        sleep 0.1
+
+        create(:post)
+        expect(select_query_count { get "/api/v1/timeline" }).to be > 0
+        expect(response.parsed_body["posts"].size).to eq(2)
+      end
+
+      def get_json(path, **params)
+        get path, params: params
+        response.parsed_body
+      end
+    end
   end
 end

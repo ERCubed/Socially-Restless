@@ -36,6 +36,13 @@ rescue ActiveRecord::PendingMigrationError => e
 end
 RSpec.configure do |config|
   config.include FactoryBot::Syntax::Methods
+  config.include ActiveSupport::Testing::TimeHelpers
+
+  # Rails.cache is a real Redis-backed store in test (see
+  # config/environments/test.rb), not a null_store - so without this,
+  # a cached response from one example (e.g. the Timeline endpoint) could
+  # leak into a later, unrelated example expecting fresh data.
+  config.before { Rails.cache.clear }
 
   # Remove this line if you're not using ActiveRecord or ActiveRecord fixtures
   config.fixture_paths = [
