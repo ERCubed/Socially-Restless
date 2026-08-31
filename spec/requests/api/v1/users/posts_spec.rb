@@ -78,5 +78,34 @@ RSpec.describe "Api::V1::Users::Posts", type: :request do
       expect(body["meta"]["page"]).to eq(1)
       expect(body["meta"]["per_page"]).to eq(10)
     end
+
+    it "increments view_count for every post on the page for an anonymous viewer" do
+      posts = create_list(:post, 3, user: user, view_count: 0)
+
+      get "/api/v1/users/#{user.username}/posts"
+
+      expect(response.parsed_body["posts"].map { |p| p["view_count"] }).to all(eq(1))
+      posts.each { |p| expect(p.reload.view_count).to eq(1) }
+    end
+
+    it "increments view_count when the viewer is not the profile's own user" do
+      posts = create_list(:post, 2, user: user, view_count: 0)
+      viewer_session = Session.start!(user: create(:user))
+
+      get "/api/v1/users/#{user.username}/posts", headers: { "Authorization" => "Bearer #{viewer_session.token}" }
+
+      expect(response.parsed_body["posts"].map { |p| p["view_count"] }).to all(eq(1))
+      posts.each { |p| expect(p.reload.view_count).to eq(1) }
+    end
+
+    it "does not increment view_count when the profile's own user is viewing" do
+      posts = create_list(:post, 2, user: user, view_count: 0)
+      own_session = Session.start!(user: user)
+
+      get "/api/v1/users/#{user.username}/posts", headers: { "Authorization" => "Bearer #{own_session.token}" }
+
+      expect(response.parsed_body["posts"].map { |p| p["view_count"] }).to all(eq(0))
+      posts.each { |p| expect(p.reload.view_count).to eq(0) }
+    end
   end
 end

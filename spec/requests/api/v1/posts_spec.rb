@@ -29,6 +29,34 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
       expect(response).to have_http_status(:not_found)
     end
+
+    it "increments view_count for an anonymous viewer" do
+      post_record = create(:post, view_count: 5)
+
+      get "/api/v1/posts/#{post_record.id}"
+
+      expect(response.parsed_body["post"]["view_count"]).to eq(6)
+      expect(post_record.reload.view_count).to eq(6)
+    end
+
+    it "increments view_count for a viewer who is not the author" do
+      post_record = create(:post, user: user, view_count: 0)
+      viewer = create(:user)
+      viewer_session = Session.start!(user: viewer)
+
+      get "/api/v1/posts/#{post_record.id}", headers: { "Authorization" => "Bearer #{viewer_session.token}" }
+
+      expect(response.parsed_body["post"]["view_count"]).to eq(1)
+    end
+
+    it "does not increment view_count when the author views their own post" do
+      post_record = create(:post, user: user, view_count: 0)
+
+      get "/api/v1/posts/#{post_record.id}", headers: auth_headers
+
+      expect(response.parsed_body["post"]["view_count"]).to eq(0)
+      expect(post_record.reload.view_count).to eq(0)
+    end
   end
 
   describe "POST /api/v1/posts" do

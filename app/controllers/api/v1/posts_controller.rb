@@ -6,6 +6,7 @@ module Api
       # GET /api/v1/posts/:id
       def show
         post = Post.kept.find(params[:id])
+        Post.record_views!([ post ]) unless self_view?(post.user_id)
         render json: { post: PostSerializer.new(post).as_json }, status: :ok
       end
 

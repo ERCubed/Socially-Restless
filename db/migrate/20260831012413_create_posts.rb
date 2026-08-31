@@ -5,6 +5,7 @@ class CreatePosts < ActiveRecord::Migration[8.1]
       t.string :title, limit: 100, null: false
       t.string :body, limit: 1000, null: false
       t.datetime :deleted_at
+      t.integer :view_count, null: false, default: 0
 
       t.timestamps
     end

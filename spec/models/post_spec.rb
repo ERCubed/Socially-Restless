@@ -56,6 +56,45 @@ RSpec.describe Post, type: :model do
     end
   end
 
+  describe ".record_views!" do
+    it "increments view_count for each given post by 1" do
+      posts = create_list(:post, 2, view_count: 3)
+
+      Post.record_views!(posts)
+
+      posts.each { |p| expect(p.reload.view_count).to eq(4) }
+    end
+
+    it "keeps the in-memory objects in sync with the DB write, without reloading" do
+      post.save!
+      post.view_count = 3
+      post.save!
+
+      Post.record_views!([ post ])
+
+      expect(post.view_count).to eq(4)
+      expect(post.reload.view_count).to eq(4)
+    end
+
+    it "does nothing for an empty list" do
+      expect { Post.record_views!([]) }.not_to raise_error
+    end
+
+    it "increments via a single atomic UPDATE, not a read-modify-write" do
+      post.save!
+
+      update_queries = []
+      subscriber = ->(*, payload) { update_queries << payload[:sql] if payload[:sql].match?(/\AUPDATE/i) }
+
+      ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
+        Post.record_views!([ post ])
+      end
+
+      expect(update_queries.size).to eq(1)
+      expect(update_queries.first).to match(/view_count = view_count \+/i)
+    end
+  end
+
   describe "database constraints" do
     it "rejects a body over 1000 characters at the database level, even bypassing model validations" do
       post.save!

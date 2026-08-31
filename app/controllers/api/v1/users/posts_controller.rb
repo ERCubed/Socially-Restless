@@ -11,18 +11,16 @@ module Api
         # rather than a 404, matching how the frontend would render a
         # "no posts yet" / unknown profile the same way.
         #
-        # View count: not implemented yet, but when it is, the increment
-        # for each post shown here must be skipped when the viewer is the
-        # post's own author (self-views shouldn't inflate the count). Since
-        # this endpoint doesn't require authentication, that means
-        # resolving `current_user` optimistically (present a valid bearer
-        # token if given, but don't 401 without one) and comparing against
-        # `user`, rather than relying on `authenticate_user!`.
         def index
           user = User.find_by(username: params[:user_username])
           scope = user ? user.posts.kept : Post.none
 
           posts, meta = paginate(scope.order(created_at: :desc))
+          posts = posts.to_a
+
+          # Every post on this page has the same author (`user`), so it's
+          # one self-view check for the whole page, not one per post.
+          Post.record_views!(posts) unless self_view?(user&.id)
 
           render json: { posts: posts.map { |post| PostSerializer.new(post).as_json }, meta: meta }, status: :ok
         end
